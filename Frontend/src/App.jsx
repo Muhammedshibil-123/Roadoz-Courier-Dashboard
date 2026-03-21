@@ -6,16 +6,11 @@ import { setCredentials, logout, finishInitialLoad } from "./redux/authSlice";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import Dashboard from "./pages/dashboard/Dashboard";
+import Sidebar from "./pages/layout/Sidebar";
 
 
-const Dashboard = () => (
-  <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-white">
-    <div className="text-center">
-      <h1 className="text-2xl font-bold mb-2">Courier Dashboard</h1>
-      <p className="text-zinc-400">You are logged in ✓</p>
-    </div>
-  </div>
-);
+
 
 const PublicRoute = () => {
   const { isAuthenticated } = useSelector((s) => s.auth);

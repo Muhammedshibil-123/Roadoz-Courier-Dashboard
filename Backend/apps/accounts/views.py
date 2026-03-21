@@ -24,10 +24,6 @@ from .serializers import (
 )
 
 
-
-
-
-
 def _generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
@@ -38,18 +34,22 @@ def _send_otp_email(subject: str, body: str, recipient: str) -> None:
 
 def _set_refresh_cookie(response, refresh_token) -> None:
     jwt = settings.SIMPLE_JWT
+
+    
+    
+    lifetime = jwt["REFRESH_TOKEN_LIFETIME"]
+    max_age_seconds = int(lifetime.total_seconds())
+
     response.set_cookie(
         key=jwt["AUTH_COOKIE"],
         value=str(refresh_token),
-        max_age=jwt["REFRESH_TOKEN_LIFETIME"],
+        max_age=max_age_seconds,              
+        path=jwt.get("AUTH_COOKIE_PATH", "/"),
+        domain=jwt.get("AUTH_COOKIE_DOMAIN"), 
         secure=jwt["AUTH_COOKIE_SECURE"],
         httponly=jwt["AUTH_COOKIE_HTTP_ONLY"],
         samesite=jwt["AUTH_COOKIE_SAMESITE"],
     )
-
-
-
-
 
 
 class RegisterView(generics.GenericAPIView):
@@ -125,10 +125,6 @@ class RegisterView(generics.GenericAPIView):
         )
 
 
-
-
-
-
 class VerifyOTPView(APIView):
     permission_classes = [AllowAny]
 
@@ -141,19 +137,7 @@ class VerifyOTPView(APIView):
         tags=["Authentication"],
         request_body=VerifyOTPSerializer,
         responses={
-            200: openapi.Response(
-                "Account verified. Returns access token + user info.",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "message": openapi.Schema(type=openapi.TYPE_STRING),
-                        "access": openapi.Schema(type=openapi.TYPE_STRING),
-                        "id": openapi.Schema(type=openapi.TYPE_INTEGER),
-                        "username": openapi.Schema(type=openapi.TYPE_STRING),
-                        "email": openapi.Schema(type=openapi.TYPE_STRING),
-                    },
-                ),
-            ),
+            200: openapi.Response("Account verified. Returns access token + user info."),
             400: openapi.Response("Invalid OTP."),
             404: openapi.Response("User not found."),
         },
@@ -193,10 +177,6 @@ class VerifyOTPView(APIView):
         return response
 
 
-
-
-
-
 class CustomTokenjwtView(TokenObtainPairView):
     serializer_class = CustomTokenJwtSerializer
 
@@ -212,26 +192,12 @@ class CustomTokenjwtView(TokenObtainPairView):
             type=openapi.TYPE_OBJECT,
             required=["username", "password"],
             properties={
-                "username": openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description="Your username or email address",
-                ),
+                "username": openapi.Schema(type=openapi.TYPE_STRING),
                 "password": openapi.Schema(type=openapi.TYPE_STRING),
             },
         ),
         responses={
-            200: openapi.Response(
-                "Login successful.",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "access": openapi.Schema(type=openapi.TYPE_STRING),
-                        "id": openapi.Schema(type=openapi.TYPE_INTEGER),
-                        "username": openapi.Schema(type=openapi.TYPE_STRING),
-                        "email": openapi.Schema(type=openapi.TYPE_STRING),
-                    },
-                ),
-            ),
+            200: openapi.Response("Login successful."),
             401: openapi.Response("Invalid credentials or account not activated."),
         },
     )
@@ -242,10 +208,6 @@ class CustomTokenjwtView(TokenObtainPairView):
             if refresh_token:
                 _set_refresh_cookie(response, refresh_token)
         return response
-
-
-
-
 
 
 class CustomTokenRefreshView(TokenRefreshView):
@@ -259,31 +221,27 @@ class CustomTokenRefreshView(TokenRefreshView):
         tags=["Authentication"],
         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={}),
         responses={
-            200: openapi.Response(
-                "New access token issued.",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "access": openapi.Schema(type=openapi.TYPE_STRING),
-                        "user": openapi.Schema(type=openapi.TYPE_OBJECT),
-                    },
-                ),
-            ),
+            200: openapi.Response("New access token issued."),
             401: openapi.Response("Invalid or expired refresh token."),
         },
     )
     def post(self, request, *args, **kwargs):
+        
+        
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
         if refresh_token:
+            
             request.data["refresh"] = refresh_token
 
         try:
             response = super().post(request, *args, **kwargs)
             if response.status_code == 200:
+                
                 new_refresh = response.data.pop("refresh", None)
                 if new_refresh:
                     _set_refresh_cookie(response, new_refresh)
 
+                
                 access_str = response.data.get("access")
                 if access_str:
                     user_id = AccessToken(access_str)["user_id"]
@@ -297,32 +255,20 @@ class CustomTokenRefreshView(TokenRefreshView):
                 {"error": "Invalid or expired session. Please log in again."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-            resp.delete_cookie(settings.SIMPLE_JWT["AUTH_COOKIE"])
+            resp.delete_cookie(
+                settings.SIMPLE_JWT["AUTH_COOKIE"],
+                path=settings.SIMPLE_JWT.get("AUTH_COOKIE_PATH", "/"),
+            )
             return resp
-
-
-
-
 
 
 class LogoutView(APIView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
-        operation_description=(
-            "Blacklist the refresh token and clear the HttpOnly auth cookie.\n\n"
-            "Works whether the token arrives via cookie or request body."
-        ),
+        operation_description="Blacklist the refresh token and clear the HttpOnly auth cookie.",
         tags=["Authentication"],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "refresh": openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description="Optional — only needed if not using cookies.",
-                )
-            },
-        ),
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={}),
         responses={200: openapi.Response("Logged out successfully.")},
     )
     def post(self, request):
@@ -332,7 +278,10 @@ class LogoutView(APIView):
         )
 
         response = Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
-        response.delete_cookie(settings.SIMPLE_JWT["AUTH_COOKIE"])
+        response.delete_cookie(
+            settings.SIMPLE_JWT["AUTH_COOKIE"],
+            path=settings.SIMPLE_JWT.get("AUTH_COOKIE_PATH", "/"),
+        )
 
         if refresh_token:
             try:
@@ -343,24 +292,14 @@ class LogoutView(APIView):
         return response
 
 
-
-
-
-
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
-        operation_description=(
-            "Request a password-reset OTP via email.\n\n"
-            "Always returns `200` — even for unknown emails — to prevent account enumeration."
-        ),
+        operation_description="Request a password-reset OTP via email.",
         tags=["Password"],
         request_body=ForgotPasswordSerializer,
-        responses={
-            200: openapi.Response("OTP sent if the account exists."),
-            400: openapi.Response("Validation error."),
-        },
+        responses={200: openapi.Response("OTP sent if the account exists.")},
     )
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
@@ -393,23 +332,16 @@ class ForgotPasswordView(APIView):
         )
 
 
-
-
-
-
 class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
-        operation_description=(
-            "Reset the account password using the OTP received by email.\n\n"
-            "Flow: **Forgot Password → receive OTP → Reset Password**"
-        ),
+        operation_description="Reset the account password using the OTP received by email.",
         tags=["Password"],
         request_body=ResetPasswordSerializer,
         responses={
-            200: openapi.Response("Password reset successfully. You can now log in."),
-            400: openapi.Response("Invalid or expired OTP, or passwords do not match."),
+            200: openapi.Response("Password reset successfully."),
+            400: openapi.Response("Invalid or expired OTP."),
             404: openapi.Response("User not found."),
         },
     )
@@ -443,23 +375,16 @@ class ResetPasswordView(APIView):
         )
 
 
-
-
-
-
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        operation_description=(
-            "Change the password for the **currently authenticated user**.\n\n"
-            "Requires a valid `Bearer <token>` in the `Authorization` header."
-        ),
+        operation_description="Change the password for the currently authenticated user.",
         tags=["Password"],
         request_body=ChangePasswordSerializer,
         responses={
             200: openapi.Response("Password changed successfully."),
-            400: openapi.Response("Old password incorrect, passwords mismatch, or same password reused."),
+            400: openapi.Response("Old password incorrect or passwords mismatch."),
         },
     )
     def post(self, request):
@@ -477,7 +402,7 @@ class ChangePasswordView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if old_password == new_password:        
+        if old_password == new_password:
             return Response(
                 {"error": "New password must be different from the old password."},
                 status=status.HTTP_400_BAD_REQUEST,

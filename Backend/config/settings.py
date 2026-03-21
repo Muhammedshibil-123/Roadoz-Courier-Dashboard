@@ -168,11 +168,11 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     # Cookie settings
     "AUTH_COOKIE": "refresh_token",
-    "AUTH_COOKIE_DOMAIN": None,        # None = current domain
-    "AUTH_COOKIE_SECURE": False,       # True in production (HTTPS only)
+    "AUTH_COOKIE_DOMAIN": None,         # None = current domain (localhost)
+    "AUTH_COOKIE_SECURE": False,        # True in production (HTTPS only)
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_PATH": "/",
-    "AUTH_COOKIE_SAMESITE": "Lax",    # 'None' when frontend is on a different domain
+    "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
 
@@ -200,4 +200,6 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
 ]

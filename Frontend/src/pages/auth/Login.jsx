@@ -3,14 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../../redux/authSlice";
 import api, { setAccessToken } from "../../lib/axios";
+import logo from "../../assets/images/logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [identifier, setIdentifier] = useState(""); // email or username
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,13 +22,12 @@ export default function Login() {
 
     try {
       const response = await api.post("/api/auth/login/", {
-        username: identifier, // backend accepts email OR username in this field
+        username: identifier,
         password,
       });
 
       const data = response.data;
 
-      // Store access token in memory (exact MyCalo pattern)
       setAccessToken(data.access);
 
       dispatch(
@@ -49,7 +49,7 @@ export default function Login() {
       } else if (data?.non_field_errors) {
         setError(data.non_field_errors[0]);
       } else {
-        setError("Invalid credentials. Please check your email and password.");
+        setError("Invalid credentials. Please check your username and password.");
       }
     } finally {
       setLoading(false);
@@ -57,117 +57,74 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[10%] w-[500px] h-[500px] rounded-full bg-amber-500/5 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[5%] w-[400px] h-[400px] rounded-full bg-orange-600/5 blur-[100px]" />
-      </div>
-
-      <div className="relative w-full max-w-sm">
-        {/* Brand */}
-        <div className="mb-10 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500 mb-4 shadow-lg shadow-amber-500/30">
-            <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-black" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+    <div className="min-h-screen w-full bg-[#1D2D49] flex items-center justify-center overflow-hidden px-4 py-4 sm:px-6">
+      <div className="w-full max-w-[1100px] min-h-[92vh] sm:min-h-[90vh] rounded-[24px] sm:rounded-[32px] bg-[#1D2D49] flex items-center justify-center">
+        <div className="w-full max-w-[320px] sm:max-w-[430px] md:max-w-[500px] rounded-[24px] sm:rounded-[32px] bg-[#707B8F] px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12 shadow-2xl">
+          <div className="flex flex-col items-center text-center mb-7 sm:mb-8">
+            <img
+              src={logo}
+              alt="Roadoz Logo"
+              className="w-24 sm:w-28 md:w-32 h-auto object-contain"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Courier Dashboard</h1>
-          <p className="text-zinc-500 text-sm mt-1">Sign in to your workspace</p>
-        </div>
 
-        {/* Card */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 backdrop-blur-sm shadow-2xl">
-          <h2 className="text-lg font-semibold text-white mb-6">Welcome back</h2>
+          <div className="bg-[#020F2D] rounded-[22px] sm:rounded-[28px] px-4 py-5 sm:px-6 sm:py-7 md:px-7 md:py-8 shadow-xl">
+            {error && (
+              <div className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs sm:text-sm text-red-200">
+                {error}
+              </div>
+            )}
 
-          {error && (
-            <div className="mb-5 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 font-medium">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email / Username */}
-            <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                Email or Username
-              </label>
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="you@company.com"
+                placeholder="username"
                 required
-                className="w-full bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 transition-all"
+                className="w-full h-11 sm:h-12 md:h-14 rounded-full border border-[#D4AF26] bg-transparent px-4 sm:px-5 text-sm sm:text-base text-[#E3BE3A] placeholder:text-[#E3BE3A] outline-none transition-all focus:ring-2 focus:ring-[#D4AF26]/30"
               />
-            </div>
 
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                  Password
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="password"
+                required
+                className="w-full h-11 sm:h-12 md:h-14 rounded-full border border-[#D4AF26] bg-transparent px-4 sm:px-5 text-sm sm:text-base text-[#E3BE3A] placeholder:text-[#E3BE3A] outline-none transition-all focus:ring-2 focus:ring-[#D4AF26]/30"
+              />
+
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <label className="flex items-center gap-2 text-[11px] sm:text-xs md:text-sm text-[#E3BE3A] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={() => setRememberMe(!rememberMe)}
+                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-[2px] border border-[#D4AF26] bg-transparent text-[#D4AF26] focus:ring-[#D4AF26] focus:ring-1"
+                  />
+                  <span>Remember me</span>
                 </label>
-                <Link to="/forgot-password" className="text-xs text-amber-500 hover:text-amber-400 transition-colors">
+
+                <Link
+                  to="/forgot-password"
+                  className="text-[11px] sm:text-xs md:text-sm text-[#E3BE3A] hover:text-[#f1cf58] transition-colors"
+                >
                   Forgot password?
                 </Link>
               </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-zinc-600 outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 transition-all"
-                />
+
+              <div className="pt-3 sm:pt-4 flex justify-center">
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  type="submit"
+                  disabled={loading}
+                  className="h-11 sm:h-12 md:h-14 min-w-[130px] sm:min-w-[150px] rounded-full bg-[#D4AF26] px-8 text-sm sm:text-base font-semibold text-[#071225] transition-all hover:brightness-110 disabled:opacity-70"
                 >
-                  {showPassword ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeLinecap="round" strokeLinejoin="round" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
+                  {loading ? "Logging in..." : "Login"}
                 </button>
               </div>
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 text-black font-bold text-sm rounded-xl transition-all duration-200 active:scale-[0.98] shadow-lg shadow-amber-500/20"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                  Signing in...
-                </span>
-              ) : (
-                "Sign In"
-              )}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-zinc-600 mt-6">
-            Need an account?{" "}
-            <Link to="/register" className="text-amber-500 hover:text-amber-400 font-semibold transition-colors">
-              Register here
-            </Link>
-          </p>
+            </form>
+          </div>
         </div>
-
-        <p className="text-center text-xs text-zinc-700 mt-6">
-          Employee access only · Requires secret code
-        </p>
       </div>
     </div>
   );

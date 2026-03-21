@@ -8,6 +8,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Sidebar from "./layout/Sidebar";
+import Navbar from "./layout/Navbar";
 
 
 
@@ -18,10 +19,10 @@ const PublicRoute = () => {
 };
 
 const PrivateRoute = () => {
-  const { isAuthenticated } = useSelector((s) => s.auth);
+  const { isAuthenticated, loading } = useSelector((s) => s.auth);
+  if (loading) return null;
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
-
 
 function App() {
   const dispatch = useDispatch();
@@ -71,7 +72,9 @@ function App() {
 
         <Route element={<PrivateRoute />}>
           <Route element={<Sidebar />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route element={<Navbar />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+            </Route>
           </Route>
         </Route>
 

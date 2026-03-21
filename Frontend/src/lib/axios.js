@@ -6,7 +6,11 @@ import { startFetching, stopFetching } from "../redux/authSlice";
 let access_token_in_memory = null;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000",
+  // IMPORTANT: Must use "localhost" (not "127.0.0.1") so the browser treats
+  // this as same-site as the cookie that was set by localhost:8000.
+  // With SameSite=Lax, cookies set on 127.0.0.1 are NOT sent to localhost
+  // and vice-versa, causing the refresh token cookie to silently disappear.
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000",
   withCredentials: true, // sends the HttpOnly refresh cookie automatically
 });
 

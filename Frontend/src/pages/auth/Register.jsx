@@ -3,8 +3,47 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../../redux/authSlice";
 import api, { setAccessToken } from "../../lib/axios";
+import logo from "../../assets/images/logo.png";
 
-// ─── Step 1: Registration form ───────────────────────────────────────────────
+const inputClass =
+  "w-full h-10 sm:h-11 md:h-12 rounded-full border border-[#D4AF26] bg-transparent px-4 text-sm sm:text-base text-[#E3BE3A] placeholder:text-[#E3BE3A] outline-none transition-all focus:ring-2 focus:ring-[#D4AF26]/30";
+
+const labelClass =
+  "block text-[11px] sm:text-xs md:text-sm font-medium text-[#E3BE3A] mb-1.5 sm:mb-2";
+
+function EyeIcon({ show }) {
+  return show ? (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="w-4 h-4"
+    >
+      <path
+        d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ) : (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="w-4 h-4"
+    >
+      <path
+        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 function RegisterForm({ onSuccess }) {
   const [form, setForm] = useState({
     username: "",
@@ -13,6 +52,7 @@ function RegisterForm({ onSuccess }) {
     password: "",
     confirm_password: "",
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,105 +74,127 @@ function RegisterForm({ onSuccess }) {
     try {
       const response = await api.post("/api/auth/register/", form);
 
-      // 200 = unverified account exists, new OTP sent
-      // 201 = fresh account created
       if (response.status === 200 || response.status === 201) {
         onSuccess(form.email);
       }
     } catch (err) {
       const data = err.response?.data;
-      if (!data) { setError("Something went wrong. Please try again."); return; }
 
-      if (err.response?.status === 409) {
+      if (!data) {
+        setError("Something went wrong. Please try again.");
+      } else if (err.response?.status === 409) {
         setError("This email is already verified. Please log in.");
-        return;
+      } else {
+        const firstKey = Object.keys(data)[0];
+        const firstVal = data[firstKey];
+        setError(Array.isArray(firstVal) ? firstVal[0] : firstVal);
       }
-      const firstKey = Object.keys(data)[0];
-      const firstVal = data[firstKey];
-      setError(Array.isArray(firstVal) ? firstVal[0] : firstVal);
     } finally {
       setLoading(false);
     }
   };
 
-  const inputClass =
-    "w-full bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 transition-all";
-
-  const EyeIcon = ({ show }) => show ? (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
       {error && (
-        <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 font-medium">
+        <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
           {error}
         </div>
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Username</label>
-        <input type="text" placeholder="john_doe" required value={form.username} onChange={update("username")} className={inputClass} />
+        <label className={labelClass}>Username</label>
+        <input
+          type="text"
+          placeholder="username"
+          required
+          value={form.username}
+          onChange={update("username")}
+          className={inputClass}
+        />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Work Email</label>
-        <input type="email" placeholder="you@company.com" required value={form.email} onChange={update("email")} className={inputClass} />
+        <label className={labelClass}>Email</label>
+        <input
+          type="email"
+          placeholder="email"
+          required
+          value={form.email}
+          onChange={update("email")}
+          className={inputClass}
+        />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Employee Secret Code</label>
-        <input type="text" placeholder="employee1234" required value={form.secret_code} onChange={update("secret_code")} className={inputClass} />
-        <p className="text-xs text-zinc-600 mt-1.5">Provided by your manager. Required for access.</p>
+        <label className={labelClass}>Secret Code</label>
+        <input
+          type="text"
+          placeholder="secret code"
+          required
+          value={form.secret_code}
+          onChange={update("secret_code")}
+          className={inputClass}
+        />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Password</label>
+          <label className={labelClass}>Password</label>
           <div className="relative">
-            <input type={showPassword ? "text" : "password"} placeholder="••••••" required value={form.password} onChange={update("password")} className={inputClass + " pr-10"} />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="password"
+              required
+              value={form.password}
+              onChange={update("password")}
+              className={`${inputClass} pr-10`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E3BE3A] hover:text-[#f1cf58]"
+            >
               <EyeIcon show={showPassword} />
             </button>
           </div>
         </div>
+
         <div>
-          <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Confirm</label>
+          <label className={labelClass}>Confirm Password</label>
           <div className="relative">
-            <input type={showConfirm ? "text" : "password"} placeholder="••••••" required value={form.confirm_password} onChange={update("confirm_password")} className={inputClass + " pr-10"} />
-            <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
+            <input
+              type={showConfirm ? "text" : "password"}
+              placeholder="confirm"
+              required
+              value={form.confirm_password}
+              onChange={update("confirm_password")}
+              className={`${inputClass} pr-10`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E3BE3A] hover:text-[#f1cf58]"
+            >
               <EyeIcon show={showConfirm} />
             </button>
           </div>
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full mt-2 py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 text-black font-bold text-sm rounded-xl transition-all duration-200 active:scale-[0.98] shadow-lg shadow-amber-500/20"
-      >
-        {loading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-            Creating account...
-          </span>
-        ) : (
-          "Create Account"
-        )}
-      </button>
+      <div className="pt-1 flex justify-center">
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-10 sm:h-11 md:h-12 min-w-[150px] sm:min-w-[170px] rounded-full bg-[#D4AF26] px-6 text-sm sm:text-base font-semibold text-[#071225] transition-all hover:brightness-110 disabled:opacity-70"
+        >
+          {loading ? "Creating..." : "Create Account"}
+        </button>
+      </div>
     </form>
   );
 }
 
-// ─── Step 2: OTP verification (exact MyCalo VerfiyOtp pattern) ────────────────
 function OtpStep({ email, onBack }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -148,24 +210,36 @@ function OtpStep({ email, onBack }) {
   const handleChange = (e, index) => {
     const raw = e.target.value || "";
     const digits = raw.replace(/\D/g, "");
+
     if (digits === "") {
-      const next = [...otp]; next[index] = ""; setOtp(next); return;
+      const next = [...otp];
+      next[index] = "";
+      setOtp(next);
+      return;
     }
+
     const char = digits.slice(-1);
-    const next = [...otp]; next[index] = char; setOtp(next);
+    const next = [...otp];
+    next[index] = char;
+    setOtp(next);
     setError("");
+
     if (index < 5) inputsRef.current[index + 1]?.focus();
   };
 
   const handleKeyDown = (e, index) => {
     if (e.key === "Backspace") {
       e.preventDefault();
+
       if (otp[index]) {
-        const next = [...otp]; next[index] = ""; setOtp(next);
-        inputsRef.current[index]?.focus();
+        const next = [...otp];
+        next[index] = "";
+        setOtp(next);
       } else if (index > 0) {
         inputsRef.current[index - 1]?.focus();
-        const next = [...otp]; next[index - 1] = ""; setOtp(next);
+        const next = [...otp];
+        next[index - 1] = "";
+        setOtp(next);
       }
     }
   };
@@ -173,8 +247,10 @@ function OtpStep({ email, onBack }) {
   const handlePaste = (e) => {
     e.preventDefault();
     const data = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    const next = [...otp];
-    data.split("").forEach((ch, i) => { next[i] = ch; });
+    const next = ["", "", "", "", "", ""];
+    data.split("").forEach((char, i) => {
+      next[i] = char;
+    });
     setOtp(next);
     inputsRef.current[Math.min(data.length, 5)]?.focus();
   };
@@ -184,7 +260,9 @@ function OtpStep({ email, onBack }) {
       await api.post("/api/auth/register/", { email }, { skipLoading: true });
       setResent(true);
       setTimeout(() => setResent(false), 4000);
-    } catch {}
+    } catch {
+      setError("Could not resend code. Please try again.");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -202,12 +280,16 @@ function OtpStep({ email, onBack }) {
 
       const data = response.data;
 
-      // Exact MyCalo pattern
       setAccessToken(data.access);
+
       dispatch(
         setCredentials({
           accessToken: data.access,
-          user: { id: data.id, username: data.username, email: data.email },
+          user: {
+            id: data.id,
+            username: data.username,
+            email: data.email,
+          },
         })
       );
 
@@ -222,33 +304,27 @@ function OtpStep({ email, onBack }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
       <div className="text-center">
-        <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-amber-500">
-            <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-        <p className="text-sm text-zinc-400 leading-relaxed">
-          We sent a 6-digit code to{" "}
-          <span className="text-white font-medium">{email}</span>
+        <p className="text-xs sm:text-sm text-[#E3BE3A]/90">Enter the 6-digit code sent to</p>
+        <p className="mt-1 text-sm sm:text-base font-medium text-[#E3BE3A] break-all">
+          {email}
         </p>
       </div>
 
       {error && (
-        <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 font-medium">
+        <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
           {error}
         </div>
       )}
 
       {resent && (
-        <div className="px-4 py-3 bg-green-500/10 border border-green-500/20 rounded-xl text-sm text-green-400 font-medium text-center">
+        <div className="rounded-xl border border-green-400/30 bg-green-500/10 px-3 py-2 text-xs text-green-200 text-center">
           New code sent!
         </div>
       )}
 
-      {/* OTP inputs */}
-      <div className="flex justify-between gap-2" onPaste={handlePaste}>
+      <div className="grid grid-cols-6 gap-2" onPaste={handlePaste}>
         {otp.map((digit, idx) => (
           <input
             key={idx}
@@ -260,31 +336,35 @@ function OtpStep({ email, onBack }) {
             onChange={(e) => handleChange(e, idx)}
             onKeyDown={(e) => handleKeyDown(e, idx)}
             onFocus={(e) => e.target.select()}
-            className="w-12 h-14 text-center text-xl font-bold rounded-xl border-2 border-zinc-700 bg-zinc-800/60 text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
+            className="h-10 sm:h-11 md:h-12 rounded-xl border border-[#D4AF26] bg-transparent text-center text-sm sm:text-base md:text-lg font-semibold text-[#E3BE3A] outline-none transition-all focus:ring-2 focus:ring-[#D4AF26]/30"
           />
         ))}
       </div>
 
-      <button
-        type="submit"
-        disabled={!isOtpComplete || loading}
-        className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/40 disabled:cursor-not-allowed text-black font-bold text-sm rounded-xl transition-all duration-200 active:scale-[0.98]"
-      >
-        {loading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-            Verifying...
-          </span>
-        ) : (
-          "Verify & Activate"
-        )}
-      </button>
+      <div className="pt-1 flex justify-center">
+        <button
+          type="submit"
+          disabled={!isOtpComplete || loading}
+          className="h-10 sm:h-11 md:h-12 min-w-[140px] sm:min-w-[160px] rounded-full bg-[#D4AF26] px-6 text-sm sm:text-base font-semibold text-[#071225] transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Verifying..." : "Verify"}
+        </button>
+      </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <button type="button" onClick={onBack} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+      <div className="flex items-center justify-between gap-4 text-[11px] sm:text-xs md:text-sm">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-[#E3BE3A] hover:text-[#f1cf58] transition-colors"
+        >
           ← Back
         </button>
-        <button type="button" onClick={handleResend} className="text-amber-500 hover:text-amber-400 transition-colors font-medium">
+
+        <button
+          type="button"
+          onClick={handleResend}
+          className="text-[#E3BE3A] hover:text-[#f1cf58] transition-colors"
+        >
           Resend code
         </button>
       </div>
@@ -292,9 +372,8 @@ function OtpStep({ email, onBack }) {
   );
 }
 
-// ─── Main export ─────────────────────────────────────────────────────────────
 export default function Register() {
-  const [step, setStep] = useState("form"); // "form" | "otp"
+  const [step, setStep] = useState("form");
   const [email, setEmail] = useState("");
 
   const handleRegistered = (registeredEmail) => {
@@ -303,58 +382,48 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[-20%] right-[10%] w-[500px] h-[500px] rounded-full bg-amber-500/5 blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[5%] w-[400px] h-[400px] rounded-full bg-orange-600/5 blur-[100px]" />
-      </div>
-
-      <div className="relative w-full max-w-sm">
-        {/* Brand */}
-        <div className="mb-10 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500 mb-4 shadow-lg shadow-amber-500/30">
-            <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-black" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Courier Dashboard</h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            {step === "form" ? "Create your employee account" : "Verify your email"}
-          </p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 backdrop-blur-sm shadow-2xl">
-          {/* Progress bar */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="flex-1 h-1 rounded-full bg-amber-500" />
-            <div className={`flex-1 h-1 rounded-full transition-colors duration-300 ${step === "otp" ? "bg-amber-500" : "bg-zinc-700"}`} />
+    <div className="min-h-screen w-full bg-[#1D2D49] flex items-center justify-center overflow-hidden px-3 py-3 sm:px-4 sm:py-4">
+      <div className="w-full max-w-[980px] min-h-screen sm:min-h-0 flex items-center justify-center">
+        <div className="w-full max-w-[320px] sm:max-w-[420px] md:max-w-[500px] rounded-[24px] sm:rounded-[28px] bg-[#7A859A] px-4 py-5 sm:px-6 sm:py-6 md:px-7 md:py-7 shadow-2xl">
+          <div className="flex flex-col items-center text-center mb-4 sm:mb-5">
+            <img
+              src={logo}
+              alt="Roadoz Logo"
+              className="w-20 sm:w-24 md:w-28 h-auto object-contain"
+            />
           </div>
 
-          <h2 className="text-lg font-semibold text-white mb-6">
-            {step === "form" ? "Account details" : "Enter verification code"}
-          </h2>
+          <div className="bg-[#020F2D] rounded-[22px] sm:rounded-[26px] px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6 shadow-xl">
+            <div className="mb-4 sm:mb-5 text-center">
+              <h2 className="text-xl sm:text-2xl font-semibold text-[#E3BE3A]">
+                {step === "form" ? "Create Account" : "Verify OTP"}
+              </h2>
+              <p className="mt-1 text-xs sm:text-sm text-[#E3BE3A]/85">
+                {step === "form"
+                  ? "Create your employee account"
+                  : "Complete your email verification"}
+              </p>
+            </div>
 
-          {step === "form" ? (
-            <RegisterForm onSuccess={handleRegistered} />
-          ) : (
-            <OtpStep email={email} onBack={() => setStep("form")} />
-          )}
+            {step === "form" ? (
+              <RegisterForm onSuccess={handleRegistered} />
+            ) : (
+              <OtpStep email={email} onBack={() => setStep("form")} />
+            )}
 
-          {step === "form" && (
-            <p className="text-center text-sm text-zinc-600 mt-6">
-              Already have an account?{" "}
-              <Link to="/login" className="text-amber-500 hover:text-amber-400 font-semibold transition-colors">
-                Sign in
-              </Link>
-            </p>
-          )}
+            {step === "form" && (
+              <p className="mt-4 text-center text-xs sm:text-sm text-[#E3BE3A]/80">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="text-[#E3BE3A] hover:text-[#f1cf58] font-medium transition-colors"
+                >
+                  Sign in
+                </Link>
+              </p>
+            )}
+          </div>
         </div>
-
-        <p className="text-center text-xs text-zinc-700 mt-6">
-          Employee access only · Requires secret code
-        </p>
       </div>
     </div>
   );

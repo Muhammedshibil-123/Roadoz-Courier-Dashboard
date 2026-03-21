@@ -8,7 +8,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Sidebar from "./layout/Sidebar";
-import Navbar from "./layout/Navbar";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 
 
 
@@ -68,13 +68,12 @@ function App() {
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
 
         <Route element={<PrivateRoute />}>
           <Route element={<Sidebar />}>
-            <Route element={<Navbar />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
+            <Route path="/dashboard" element={<Dashboard />} />
           </Route>
         </Route>
 

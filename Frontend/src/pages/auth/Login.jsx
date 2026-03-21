@@ -95,15 +95,18 @@ export default function Login() {
               />
 
               <div className="flex items-center justify-between gap-3 pt-1">
-                <label className="flex items-center gap-2 text-[11px] sm:text-xs md:text-sm text-[#E3BE3A] cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={() => setRememberMe(!rememberMe)}
-                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-[2px] border border-[#D4AF26] bg-transparent text-[#D4AF26] focus:ring-[#D4AF26] focus:ring-1"
-                  />
-                  <span>Remember me</span>
-                </label>
+                <div className="flex items-center justify-between gap-1 pt-1">
+                  <p className="text-[11px] sm:text-xs md:text-sm text-[#E3BE3A]/80">
+                    New here?
+                  </p>
+
+                  <Link
+                    to="/register"
+                    className="text-[11px] sm:text-xs md:text-sm text-[#E3BE3A] hover:text-[#f1cf58] font-medium transition-colors"
+                  >
+                   Register
+                  </Link>
+                </div>
 
                 <Link
                   to="/forgot-password"

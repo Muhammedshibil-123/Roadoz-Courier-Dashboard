@@ -155,7 +155,7 @@ REST_FRAMEWORK = {
 }
 
 AUTHENTICATION_BACKENDS = [
-    "apps.accounts.backends.EmailUsernameBackend", 
+    "apps.accounts.backend.EmailUsernameBackend", 
     "django.contrib.auth.backends.ModelBackend",
 ]
 

@@ -7,7 +7,7 @@ import { setCredentials, logout, finishInitialLoad } from "./redux/authSlice";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
-import Sidebar from "./pages/layout/Sidebar";
+import Sidebar from "./layout/Sidebar";
 
 
 
@@ -27,7 +27,7 @@ function App() {
   const dispatch = useDispatch();
   const { loading } = useSelector((s) => s.auth);
 
-  
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -70,7 +70,9 @@ function App() {
         </Route>
 
         <Route element={<PrivateRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route element={<Sidebar />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />

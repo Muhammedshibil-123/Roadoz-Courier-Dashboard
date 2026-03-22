@@ -34,6 +34,12 @@ const Sidebar = () => {
         if (window.location.pathname.startsWith('/tools')) {
             initExpanded['Tools'] = true;
         }
+        if (window.location.pathname.startsWith('/finance')) {
+            initExpanded['Finance'] = true;
+        }
+        if (window.location.pathname.startsWith('/settings')) {
+            initExpanded['Settings'] = true;
+        }
         return initExpanded;
     });
 
@@ -74,11 +80,28 @@ const Sidebar = () => {
                 { name: "Channel Integration", path: "/tools/channel-integration" },
             ],
         },
-        { name: "Finance", path: "/finance", icon: FaMoneyCheckAlt, arrow: true },
+        {
+            name: "Finance", path: "/finance", icon: FaMoneyCheckAlt,
+            children: [
+                { name: "Wallet", path: "/finance/wallet" },
+                { name: "COD Remittance", path: "/finance/cod-remittance" },
+                { name: "Invoices", path: "/finance/invoices" },
+            ],
+        },
         { name: "Consignees", path: "/consignees", icon: FaUsers },
         { name: "Tickets", path: "/tickets", icon: FaTicketAlt },
         { name: "Reports", path: "/reports", icon: FaChartBar },
-        { name: "Settings", path: "/settings", icon: FaCog, arrow: true },
+        {
+            name: "Settings", path: "/settings", icon: FaCog,
+            children: [
+                { name: "General Details", path: "/settings/general-details" },
+                { name: "Change Password", path: "/settings/change-password" },
+                { name: "Pickup Address", path: "/settings/pickup-address" },
+                { name: "RTO Address", path: "/settings/rto-address" },
+                { name: "Label Settings", path: "/settings/label-settings" },
+                { name: "KYC", path: "/settings/kyc" },
+            ],
+        },
     ];
 
     const handleLogout = async () => {

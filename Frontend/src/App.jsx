@@ -31,6 +31,24 @@ import ServiceablePincode from "./pages/dashboard/tools/ServiceablePincode";
 import RateCalculator from "./pages/dashboard/tools/RateCalculator";
 import ChannelIntegration from "./pages/dashboard/tools/ChannelIntegration";
 
+// Finance sub-pages
+import Wallet from "./pages/dashboard/finance/Wallet";
+import CODRemittance from "./pages/dashboard/finance/CODRemittance";
+import Invoices from "./pages/dashboard/finance/Invoices";
+
+// Other pages
+import Consignees from "./pages/dashboard/Consignees";
+import Tickets from "./pages/dashboard/Tickets";
+import Reports from "./pages/dashboard/Reports";
+
+// Settings sub-pages
+import GeneralDetails from "./pages/dashboard/settings/GeneralDetails";
+import ChangePassword from "./pages/dashboard/settings/ChangePassword";
+import PickupAddress from "./pages/dashboard/settings/PickupAddress";
+import RTOAddress from "./pages/dashboard/settings/RTOAddress";
+import LabelSettings from "./pages/dashboard/settings/LabelSettings";
+import KYC from "./pages/dashboard/settings/KYC";
+
 const PublicRoute = () => {
   const { isAuthenticated } = useSelector((s) => s.auth);
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
@@ -112,6 +130,24 @@ function App() {
             <Route path="/tools/serviceable-pincode" element={<ServiceablePincode />} />
             <Route path="/tools/rate-calculator" element={<RateCalculator />} />
             <Route path="/tools/channel-integration" element={<ChannelIntegration />} />
+
+            {/* Finance sub-pages */}
+            <Route path="/finance/wallet" element={<Wallet />} />
+            <Route path="/finance/cod-remittance" element={<CODRemittance />} />
+            <Route path="/finance/invoices" element={<Invoices />} />
+
+            {/* Other pages */}
+            <Route path="/consignees" element={<Consignees />} />
+            <Route path="/tickets" element={<Tickets />} />
+            <Route path="/reports" element={<Reports />} />
+
+            {/* Settings sub-pages */}
+            <Route path="/settings/general-details" element={<GeneralDetails />} />
+            <Route path="/settings/change-password" element={<ChangePassword />} />
+            <Route path="/settings/pickup-address" element={<PickupAddress />} />
+            <Route path="/settings/rto-address" element={<RTOAddress />} />
+            <Route path="/settings/label-settings" element={<LabelSettings />} />
+            <Route path="/settings/kyc" element={<KYC />} />
           </Route>
         </Route>
 

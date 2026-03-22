@@ -26,6 +26,11 @@ import RTODelivery from "./pages/dashboard/orders/RTODelivery";
 import Return from "./pages/dashboard/orders/Return";
 import Cancelled from "./pages/dashboard/orders/Cancelled";
 
+// Tools sub-pages
+import ServiceablePincode from "./pages/dashboard/tools/ServiceablePincode";
+import RateCalculator from "./pages/dashboard/tools/RateCalculator";
+import ChannelIntegration from "./pages/dashboard/tools/ChannelIntegration";
+
 const PublicRoute = () => {
   const { isAuthenticated } = useSelector((s) => s.auth);
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
@@ -102,6 +107,11 @@ function App() {
             <Route path="/orders/rto-delivery" element={<RTODelivery />} />
             <Route path="/orders/return" element={<Return />} />
             <Route path="/orders/cancelled" element={<Cancelled />} />
+
+            {/* Tools sub-pages */}
+            <Route path="/tools/serviceable-pincode" element={<ServiceablePincode />} />
+            <Route path="/tools/rate-calculator" element={<RateCalculator />} />
+            <Route path="/tools/channel-integration" element={<ChannelIntegration />} />
           </Route>
         </Route>
 

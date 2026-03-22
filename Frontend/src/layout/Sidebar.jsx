@@ -27,10 +27,12 @@ const Sidebar = () => {
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [expandedMenus, setExpandedMenus] = useState(() => {
-        // Auto-expand Orders dropdown if current path is an orders sub-page
         const initExpanded = {};
         if (window.location.pathname.startsWith('/orders')) {
             initExpanded['Orders'] = true;
+        }
+        if (window.location.pathname.startsWith('/tools')) {
+            initExpanded['Tools'] = true;
         }
         return initExpanded;
     });
@@ -64,7 +66,14 @@ const Sidebar = () => {
                 { name: "Cancelled", path: "/orders/cancelled" },
             ],
         },
-        { name: "Tools", path: "/tools", icon: FaTools, arrow: true },
+        {
+            name: "Tools", path: "/tools", icon: FaTools,
+            children: [
+                { name: "Serviceable Pincode", path: "/tools/serviceable-pincode" },
+                { name: "Rate Calculator", path: "/tools/rate-calculator" },
+                { name: "Channel Integration", path: "/tools/channel-integration" },
+            ],
+        },
         { name: "Finance", path: "/finance", icon: FaMoneyCheckAlt, arrow: true },
         { name: "Consignees", path: "/consignees", icon: FaUsers },
         { name: "Tickets", path: "/tickets", icon: FaTicketAlt },

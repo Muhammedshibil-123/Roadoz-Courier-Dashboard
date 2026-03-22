@@ -1,63 +1,62 @@
-import React, { useState } from 'react';
-
-const mockConsignees = [
-  {
-    id: '#CON-8291',
-    name: 'Alex Mercer',
-    phone: '+1 (555) 0123',
-    email: 'alex.m@velocity.com',
-    address: '122 Broadwa...',
-    city: 'New York',
-    state: 'NY',
-    pincode: '10001',
-    status: true,
-  },
-  {
-    id: '#CON-8292',
-    name: 'Sarah Chen',
-    phone: '+1 (555) 9876',
-    email: 'schen@techflow.io',
-    address: '45 Market St,...',
-    city: 'San Francisco',
-    state: 'CA',
-    pincode: '94103',
-    status: true,
-  },
-  {
-    id: '#CON-8293',
-    name: 'Rober King',
-    phone: '+1 (555) 4433',
-    email: 'rking@logi-solutions.com',
-    address: '888 Industria...',
-    city: 'Chicago',
-    state: 'IL',
-    pincode: '60601',
-    status: false,
-  },
-  {
-    id: '#CON-8294',
-    name: 'Jessi Hill',
-    phone: '+1 (555) 7788',
-    email: 'jhill@retail-giant.net',
-    address: '12 North Star...',
-    city: 'Austin',
-    state: 'TX',
-    pincode: '73301',
-    status: true,
-  },
-];
+import React, { useState, useEffect } from 'react';
+import api from '../../lib/axios';
 
 const Consignees = () => {
-  const [consignees, setConsignees] = useState(mockConsignees);
+  const [consignees, setConsignees] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     dateRange: '', name: '', mobileNo: '', email: '', pincode: '', status: 'All',
   });
 
+  useEffect(() => {
+    const fetchConsignees = async () => {
+      try {
+        const response = await api.get('/api/orders/consignees/');
+        const inactivePhones = JSON.parse(localStorage.getItem('inactiveConsignees') || '[]');
+        const updatedData = response.data.map(c => ({
+          ...c,
+          status: !inactivePhones.includes(c.phone)
+        }));
+        setConsignees(updatedData);
+      } catch (error) {
+        console.error("Failed to fetch consignees:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConsignees();
+  }, []);
+
   const inputClass = 'bg-transparent border border-[var(--color-border)] rounded-md px-3 py-2 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[#d4af26] transition-colors';
 
   const toggleStatus = (id) => {
-    setConsignees(consignees.map(c => c.id === id ? { ...c, status: !c.status } : c));
+    const newConsignees = [...consignees];
+    const idx = newConsignees.findIndex(c => c.id === id);
+    if (idx !== -1) {
+      const isNowActive = !newConsignees[idx].status;
+      newConsignees[idx].status = isNowActive;
+      setConsignees(newConsignees);
+      
+      const phone = newConsignees[idx].phone;
+      const storedInactive = JSON.parse(localStorage.getItem('inactiveConsignees') || '[]');
+      if (!isNowActive && !storedInactive.includes(phone)) {
+        localStorage.setItem('inactiveConsignees', JSON.stringify([...storedInactive, phone]));
+      } else if (isNowActive && storedInactive.includes(phone)) {
+        localStorage.setItem('inactiveConsignees', JSON.stringify(storedInactive.filter(p => p !== phone)));
+      }
+    }
   };
+
+  const filteredConsignees = consignees.filter(c => {
+    return (
+      (filters.name === '' || c.name.toLowerCase().includes(filters.name.toLowerCase())) &&
+      (filters.mobileNo === '' || c.phone.includes(filters.mobileNo)) &&
+      (filters.pincode === '' || c.pincode.includes(filters.pincode)) &&
+      (filters.status === 'All' || 
+        (filters.status === 'Active' && c.status) || 
+        (filters.status === 'Inactive' && !c.status))
+    );
+  });
 
   return (
     <div className="flex-1 p-6 space-y-5">

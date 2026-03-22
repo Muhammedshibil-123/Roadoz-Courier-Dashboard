@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_yasg', 
     
+    'cloudinary_storage',
+    'cloudinary',
     
     'accounts',
     'dashboard',
@@ -183,6 +185,10 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")     
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD") 
 
+# Razorpay configuring
+RAZOR_KEY_ID = os.getenv("RAZOR_KEY_ID")
+RAZOR_KEY_SECRET = os.getenv("RAZOR_KEY_SECRET")
+
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
         'Bearer': {
@@ -203,3 +209,36 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://127.0.0.1:3000',
 ]
+
+# Cloudinary settings
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+cloudinary.config(
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+)
+
+# Use a dedicated folder in Cloudinary for this project
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+    'MEDIA_TAG': 'roadoz-courier-dashboard',
+    'STATICFILES_MANIFEST_ROOT': os.path.join(BASE_DIR, 'manifest'),
+}
+
+# Django 4.2+ uses STORAGES instead of DEFAULT_FILE_STORAGE
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+# Legacy fallback (for older Django versions)
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

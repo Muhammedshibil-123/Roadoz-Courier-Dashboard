@@ -412,3 +412,73 @@ class ChangePasswordView(APIView):
         user.save(update_fields=["password"])
 
         return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
+
+
+# --- Settings and Addresses Views ---
+from rest_framework import viewsets
+from rest_framework.parsers import MultiPartParser, FormParser
+from .models import PickupAddress, RTOAddress, LabelSetting
+from .serializers import (
+    GeneralDetailsSerializer,
+    KYCSerializer,
+    PickupAddressSerializer,
+    RTOAddressSerializer,
+    LabelSettingSerializer
+)
+
+class GeneralDetailsView(generics.RetrieveUpdateAPIView):
+    serializer_class = GeneralDetailsSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get_object(self):
+        return self.request.user
+
+
+class KYCView(generics.RetrieveUpdateAPIView):
+    serializer_class = KYCSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        # When user submits KYC form, mark status as pending
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(kyc_status="pending")
+        return Response(serializer.data)
+
+
+class PickupAddressViewSet(viewsets.ModelViewSet):
+    serializer_class = PickupAddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return PickupAddress.objects.filter(user=self.request.user).order_by('-id')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class RTOAddressViewSet(viewsets.ModelViewSet):
+    serializer_class = RTOAddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return RTOAddress.objects.filter(user=self.request.user).order_by('-id')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class LabelSettingView(generics.RetrieveUpdateAPIView):
+    serializer_class = LabelSettingSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get_object(self):
+        # Get or create label settings for user
+        obj, created = LabelSetting.objects.get_or_create(user=self.request.user)
+        return obj

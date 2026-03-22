@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdSearch, MdDelete, MdAdd } from 'react-icons/md';
 import api from '../../lib/axios';
@@ -14,6 +14,61 @@ const NewOrders = () => {
     name: '', mobile: '', altMobile: '', email: '',
     address1: '', address2: '', pincode: '', city: '', state: '',
   });
+
+  // Consignee Autocomplete
+  const [searchQuery, setSearchQuery] = useState('');
+  const [consigneesList, setConsigneesList] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const fetchConsignees = async () => {
+      try {
+        const response = await api.get('/api/orders/consignees/');
+        const inactivePhones = JSON.parse(localStorage.getItem('inactiveConsignees') || '[]');
+        // Only keep active consignees for suggestions
+        const activeData = response.data.filter(c => !inactivePhones.includes(c.phone));
+        setConsigneesList(activeData);
+      } catch (error) {
+        console.error("Failed to fetch consignees:", error);
+      }
+    };
+    fetchConsignees();
+
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setShowSuggestions(true);
+  };
+
+  const handleSelectConsignee = (c) => {
+    setConsignee({
+      name: c.name || '',
+      mobile: c.phone || '',
+      altMobile: '',
+      email: c.email !== 'N/A' ? c.email : '',
+      address1: c.address || '',
+      address2: '',
+      pincode: c.pincode || '',
+      city: c.city || '',
+      state: c.state || '',
+    });
+    setSearchQuery('');
+    setShowSuggestions(false);
+  };
+
+  const filteredSuggestions = consigneesList.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.phone.includes(searchQuery)
+  );
 
   // Products (array so user can add more)
   const [orderValue, setOrderValue] = useState('');
@@ -122,12 +177,36 @@ const NewOrders = () => {
         <h2 className="text-base font-semibold text-[var(--color-text-primary)] mb-4">Deliver To</h2>
 
         {/* Search */}
-        <div className="relative mb-6">
-          <input
-            type="text"
-            placeholder="Search consignee by Name / Email"
-            className={`${inputClass} max-w-2xl`}
-          />
+        <div className="relative mb-6" ref={searchRef}>
+          <div className="relative max-w-2xl">
+            <input
+              type="text"
+              placeholder="Search consignee by Name / Phone"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => setShowSuggestions(true)}
+              className={`${inputClass} w-full`}
+            />
+            {showSuggestions && searchQuery && filteredSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {filteredSuggestions.map((c, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => handleSelectConsignee(c)}
+                    className="px-4 py-3 hover:bg-[var(--color-border)] cursor-pointer transition-colors border-b border-[var(--color-border)] last:border-0"
+                  >
+                    <div className="font-semibold text-[var(--color-text-primary)] text-sm">{c.name}</div>
+                    <div className="text-xs text-[var(--color-text-secondary)] mt-0.5">{c.phone} • {c.address}, {c.city}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {showSuggestions && searchQuery && filteredSuggestions.length === 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-md shadow-lg px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                No active consignees match your search.
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Consignee Details */}

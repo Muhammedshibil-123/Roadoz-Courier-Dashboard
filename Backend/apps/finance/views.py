@@ -8,8 +8,8 @@ from django.conf import settings
 from .models import Wallet, WalletTransaction
 from .serializers import WalletSerializer, WalletTransactionSerializer
 
-RAZOR_KEY_ID = 'rzp_test_RtB2jZWP6x28Ez'
-RAZOR_KEY_SECRET = 'FVa5j3jCh2LMeLHwk7mfDuEE'
+RAZOR_KEY_ID = settings.RAZOR_KEY_ID
+RAZOR_KEY_SECRET = settings.RAZOR_KEY_SECRET
 
 client = razorpay.Client(auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET))
 

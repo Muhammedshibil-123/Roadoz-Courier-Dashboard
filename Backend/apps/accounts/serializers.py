@@ -135,3 +135,51 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email", "status", "is_active")
+
+
+class GeneralDetailsSerializer(serializers.ModelSerializer):
+    profile_image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = ("username", "email", "mobile", "order_report_email", "profile_image", "profile_image_url")
+        read_only_fields = ("username", "profile_image_url")
+
+    def get_profile_image_url(self, obj):
+        if obj.profile_image:
+            return obj.profile_image.url
+        return None
+
+
+class KYCSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("full_name", "business_name", "pan_number", "aadhar_number", "gst_number", "bank_account_number", "ifsc_code", "bank_name", "kyc_status")
+        read_only_fields = ("kyc_status",)
+
+
+from .models import PickupAddress, RTOAddress, LabelSetting
+
+class PickupAddressSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+
+    class Meta:
+        model = PickupAddress
+        fields = '__all__'
+        read_only_fields = ('user', 'created_at')
+
+
+class RTOAddressSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+
+    class Meta:
+        model = RTOAddress
+        fields = '__all__'
+        read_only_fields = ('user', 'created_at')
+
+
+class LabelSettingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LabelSetting
+        fields = '__all__'
+        read_only_fields = ('user',)

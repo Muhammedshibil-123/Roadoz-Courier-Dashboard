@@ -244,3 +244,49 @@ def order_stats(request):
         
     stats["TOTAL"] = total
     return Response(stats)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def consignees_list(request):
+    """
+    Returns a list of unique consignees (customers) based on the current user's orders.
+    Extracted from customer details in the Order model.
+    """
+    from django.db.models import Max
+    
+    # Get distinct customers by phone number or name, grabbing latest order address
+    consignees = (
+        Order.objects.filter(user=request.user)
+        .values("customer_name", "customer_phone", "destination_address", "destination_pincode")
+        .annotate(latest_order=Max("created_at"))
+        .order_by("-latest_order")
+    )
+    
+    results = []
+    # To avoid duplicates if a customer has multiple addresses, we group by phone number
+    seen_phones = set()
+    for c in consignees:
+        phone = c["customer_phone"]
+        if phone not in seen_phones:
+            seen_phones.add(phone)
+            
+            # Extract basic city/state from the comma separated address built in React
+            address_parts = [p.strip() for p in c["destination_address"].split(",")]
+            state = address_parts[-1] if len(address_parts) > 0 else "Unknown"
+            city = address_parts[-2] if len(address_parts) > 1 else "Unknown"
+            short_address = ", ".join(address_parts[:-2]) if len(address_parts) > 2 else c["destination_address"]
+            
+            results.append({
+                "id": f"#CON-{hash(phone) % 10000 + 10000}", # consistent display ID
+                "name": c["customer_name"],
+                "phone": phone,
+                "email": "N/A", # We don't collect email in the current Order model
+                "address": short_address,
+                "city": city,
+                "state": state,
+                "pincode": c["destination_pincode"],
+                "status": True # Default logic since they ordered from us
+            })
+            
+    return Response(results)

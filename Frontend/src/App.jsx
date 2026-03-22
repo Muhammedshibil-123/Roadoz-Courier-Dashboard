@@ -12,8 +12,19 @@ import ProcessingOrders from "./pages/dashboard/ProcessingOrders";
 import Sidebar from "./layout/Sidebar";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 
-
-
+// Orders sub-pages
+import AllOrders from "./pages/dashboard/orders/AllOrders";
+import Manifested from "./pages/dashboard/orders/Manifested";
+import NotPicked from "./pages/dashboard/orders/NotPicked";
+import InTransit from "./pages/dashboard/orders/InTransit";
+import NDR from "./pages/dashboard/orders/NDR";
+import Pending from "./pages/dashboard/orders/Pending";
+import OutOfDelivery from "./pages/dashboard/orders/OutOfDelivery";
+import Delivery from "./pages/dashboard/orders/Delivery";
+import RTOInTransit from "./pages/dashboard/orders/RTOInTransit";
+import RTODelivery from "./pages/dashboard/orders/RTODelivery";
+import Return from "./pages/dashboard/orders/Return";
+import Cancelled from "./pages/dashboard/orders/Cancelled";
 
 const PublicRoute = () => {
   const { isAuthenticated } = useSelector((s) => s.auth);
@@ -29,7 +40,6 @@ const PrivateRoute = () => {
 function App() {
   const dispatch = useDispatch();
   const { loading } = useSelector((s) => s.auth);
-
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -78,6 +88,20 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/new-orders" element={<NewOrders />} />
             <Route path="/processing-order" element={<ProcessingOrders />} />
+
+            {/* Orders sub-pages */}
+            <Route path="/orders/all" element={<AllOrders />} />
+            <Route path="/orders/manifested" element={<Manifested />} />
+            <Route path="/orders/not-picked" element={<NotPicked />} />
+            <Route path="/orders/in-transit" element={<InTransit />} />
+            <Route path="/orders/ndr" element={<NDR />} />
+            <Route path="/orders/pending" element={<Pending />} />
+            <Route path="/orders/out-of-delivery" element={<OutOfDelivery />} />
+            <Route path="/orders/delivery" element={<Delivery />} />
+            <Route path="/orders/rto-in-transit" element={<RTOInTransit />} />
+            <Route path="/orders/rto-delivery" element={<RTODelivery />} />
+            <Route path="/orders/return" element={<Return />} />
+            <Route path="/orders/cancelled" element={<Cancelled />} />
           </Route>
         </Route>
 

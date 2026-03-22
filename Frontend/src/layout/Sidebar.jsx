@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../redux/authSlice";
 import api, { setAccessToken } from "../lib/axios";
@@ -17,19 +17,53 @@ import {
     FaCog,
     FaSignOutAlt,
     FaChevronDown,
+    FaChevronUp,
 } from "react-icons/fa";
 
 const Sidebar = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [expandedMenus, setExpandedMenus] = useState(() => {
+        // Auto-expand Orders dropdown if current path is an orders sub-page
+        const initExpanded = {};
+        if (window.location.pathname.startsWith('/orders')) {
+            initExpanded['Orders'] = true;
+        }
+        return initExpanded;
+    });
 
+    // Toggle dropdown
+    const toggleMenu = (name) => {
+        setExpandedMenus((prev) => ({ ...prev, [name]: !prev[name] }));
+    };
+
+    // Check if a path or any of its children are active
+    const isPathActive = (path) => location.pathname.startsWith(path);
+
+    // Nav links with optional children
     const navLinks = [
         { name: "Dashboard", path: "/dashboard", icon: FaTachometerAlt },
         { name: "New Orders", path: "/new-orders", icon: FaClipboardList },
         { name: "Processing Order", path: "/processing-order", icon: FaClipboardList },
-        { name: "Orders", path: "/orders", icon: FaBoxOpen, arrow: true },
+        {
+            name: "Orders", path: "/orders", icon: FaBoxOpen,
+            children: [
+                { name: "All Orders", path: "/orders/all" },
+                { name: "Manifested", path: "/orders/manifested" },
+                { name: "In Transit order", path: "/orders/in-transit" },
+                { name: "Not Picked", path: "/orders/ndr" },
+                { name: "Pending", path: "/orders/pending" },
+                { name: "Out of Delivery", path: "/orders/out-of-delivery" },
+                { name: "Delivery", path: "/orders/delivery" },
+                { name: "RTO In Transit", path: "/orders/rto-in-transit" },
+                { name: "RTO Delivery", path: "/orders/rto-delivery" },
+                { name: "Return", path: "/orders/return" },
+                { name: "Cancelled", path: "/orders/cancelled" },
+            ],
+        },
         { name: "Tools", path: "/tools", icon: FaTools, arrow: true },
         { name: "Finance", path: "/finance", icon: FaMoneyCheckAlt, arrow: true },
         { name: "Consignees", path: "/consignees", icon: FaUsers },
@@ -58,58 +92,115 @@ const Sidebar = () => {
                 {/* Sidebar */}
                 <aside
                     className={`
-            bg-[var(--color-bg-surface)] border-r border-[var(--color-border)]
-            flex flex-col justify-between overflow-hidden
-            transition-all duration-300 ease-in-out
-            ${sidebarOpen ? "w-[250px]" : "w-[78px]"}
-          `}
+                        bg-[var(--color-bg-surface)] border-r border-[var(--color-border)]
+                        flex flex-col justify-between overflow-hidden
+                        transition-all duration-300 ease-in-out
+                        ${sidebarOpen ? "w-[250px]" : "w-[78px]"}
+                    `}
                 >
-                    <div>
+                    <div className="overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                         <nav className="py-1">
-                            {navLinks.map((link) => (
-                                <NavLink
-                                    key={link.path}
-                                    to={link.path}
-                                    className={({ isActive }) =>
-                                        `
-                    mx-2 my-1 flex items-center rounded-md
-                    transition-all duration-200
-                    ${isActive
-                                            ? "bg-[#d4af26] text-white" // Keeping the brand gold for active items
-                                            : "text-[var(--color-text-secondary)] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[var(--color-text-primary)]"
-                                        }
-                    ${sidebarOpen ? "justify-between px-3 py-2.5" : "justify-center px-2 py-3"}
-                  `
-                                    }
-                                >
-                                    {({ isActive }) => (
-                                        <>
-                                            <div
-                                                className={`flex items-center ${sidebarOpen ? "gap-3" : "justify-center"
-                                                    }`}
-                                            >
-                                                <link.icon
-                                                    className={`text-sm flex-shrink-0 ${isActive ? "text-white" : "text-inherit"
-                                                        }`}
-                                                />
-                                                <span
-                                                    className={`
-                            text-[12px] whitespace-nowrap overflow-hidden
-                            transition-all duration-300
-                            ${sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"}
-                          `}
-                                                >
-                                                    {link.name}
-                                                </span>
-                                            </div>
+                            {navLinks.map((link) => {
+                                const hasChildren = link.children && link.children.length > 0;
+                                const isExpanded = expandedMenus[link.name];
+                                const isActive = hasChildren
+                                    ? isPathActive(link.path)
+                                    : location.pathname === link.path;
 
-                                            {link.arrow && sidebarOpen && (
-                                                <FaChevronDown className="text-[10px] opacity-80" />
-                                            )}
-                                        </>
-                                    )}
-                                </NavLink>
-                            ))}
+                                return (
+                                    <div key={link.path}>
+                                        {/* Main nav item */}
+                                        {hasChildren ? (
+                                            <button
+                                                onClick={() => {
+                                                    toggleMenu(link.name);
+                                                    if (!isExpanded) {
+                                                        navigate(link.children[0].path);
+                                                    }
+                                                }}
+                                                className={`
+                                                    w-full mx-2 my-1 flex items-center rounded-md
+                                                    transition-all duration-200
+                                                    ${isActive
+                                                        ? "bg-[#d4af26] text-white"
+                                                        : "text-[var(--color-text-secondary)] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[var(--color-text-primary)]"
+                                                    }
+                                                    ${sidebarOpen ? "justify-between px-3 py-2.5" : "justify-center px-2 py-3"}
+                                                `}
+                                            >
+                                                <div className={`flex items-center ${sidebarOpen ? "gap-3" : "justify-center"}`}>
+                                                    <link.icon className={`text-sm flex-shrink-0 ${isActive ? "text-white" : "text-inherit"}`} />
+                                                    <span className={`text-[12px] whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"}`}>
+                                                        {link.name}
+                                                    </span>
+                                                </div>
+                                                {sidebarOpen && (
+                                                    isExpanded
+                                                        ? <FaChevronUp className="text-[10px] opacity-80" />
+                                                        : <FaChevronDown className="text-[10px] opacity-80" />
+                                                )}
+                                            </button>
+                                        ) : (
+                                            <NavLink
+                                                to={link.path}
+                                                className={({ isActive: navIsActive }) => `
+                                                    mx-2 my-1 flex items-center rounded-md
+                                                    transition-all duration-200
+                                                    ${navIsActive
+                                                        ? "bg-[#d4af26] text-white"
+                                                        : "text-[var(--color-text-secondary)] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[var(--color-text-primary)]"
+                                                    }
+                                                    ${sidebarOpen ? "justify-between px-3 py-2.5" : "justify-center px-2 py-3"}
+                                                `}
+                                            >
+                                                {({ isActive: navIsActive }) => (
+                                                    <>
+                                                        <div className={`flex items-center ${sidebarOpen ? "gap-3" : "justify-center"}`}>
+                                                            <link.icon className={`text-sm flex-shrink-0 ${navIsActive ? "text-white" : "text-inherit"}`} />
+                                                            <span className={`text-[12px] whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"}`}>
+                                                                {link.name}
+                                                            </span>
+                                                        </div>
+                                                        {link.arrow && sidebarOpen && (
+                                                            <FaChevronDown className="text-[10px] opacity-80" />
+                                                        )}
+                                                    </>
+                                                )}
+                                            </NavLink>
+                                        )}
+
+                                        {/* Dropdown children */}
+                                        {hasChildren && isExpanded && sidebarOpen && (
+                                            <div className="ml-4 mr-2 border-l border-[var(--color-border)] pl-2">
+                                                {link.children.map((child) => {
+                                                    const childActive = location.pathname === child.path;
+                                                    return (
+                                                        <NavLink
+                                                            key={child.path}
+                                                            to={child.path}
+                                                            className={`
+                                                                block py-1.5 pl-3 pr-2 my-0.5 rounded-md text-[11px]
+                                                                transition-colors duration-200
+                                                                ${childActive
+                                                                    ? "text-[#d4af26] font-semibold"
+                                                                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                                                }
+                                                            `}
+                                                        >
+                                                            <span className="flex items-center gap-2">
+                                                                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                                                    childActive ? "bg-[#d4af26]" : "border border-[var(--color-text-secondary)]"
+                                                                }`} />
+                                                                {child.name}
+                                                            </span>
+                                                        </NavLink>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </nav>
                     </div>
 
@@ -117,23 +208,14 @@ const Sidebar = () => {
                         <button
                             onClick={handleLogout}
                             className={`
-                w-full rounded-md text-left transition-all duration-200
-                text-[var(--color-text-secondary)] hover:bg-black/5 dark:hover:bg-white/5 hover:text-red-500 dark:hover:text-red-400
-                ${sidebarOpen ? "px-3 py-2.5" : "px-2 py-3 flex justify-center"}
-              `}
+                                w-full rounded-md text-left transition-all duration-200
+                                text-[var(--color-text-secondary)] hover:bg-black/5 dark:hover:bg-white/5 hover:text-red-500 dark:hover:text-red-400
+                                ${sidebarOpen ? "px-3 py-2.5" : "px-2 py-3 flex justify-center"}
+                            `}
                         >
-                            <div
-                                className={`flex items-center ${sidebarOpen ? "gap-3" : "justify-center"
-                                    }`}
-                            >
+                            <div className={`flex items-center ${sidebarOpen ? "gap-3" : "justify-center"}`}>
                                 <FaSignOutAlt className="text-sm flex-shrink-0" />
-                                <span
-                                    className={`
-                    text-[12px] whitespace-nowrap overflow-hidden
-                    transition-all duration-300
-                    ${sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"}
-                  `}
-                                >
+                                <span className={`text-[12px] whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? "w-auto opacity-100" : "w-0 opacity-0"}`}>
                                     Log Out
                                 </span>
                             </div>

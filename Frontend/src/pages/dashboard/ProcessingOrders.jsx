@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FaTruck, FaEye, FaCopy, FaPen, FaPrint, FaBoxOpen,
   FaChevronLeft, FaChevronRight
@@ -44,19 +45,21 @@ const mockOrders = [
 
 // ─── Status Tabs ─────────────────────────────────────────────
 const tabs = [
-  { label: 'Processing Order', count: 0 },
-  { label: 'Manifested', count: 0 },
-  { label: 'In Transit', count: 1 },
-  { label: 'NDR', count: 0 },
-  { label: 'Out For Delivery', count: 0 },
-  { label: 'Delivery', count: 0 },
-  { label: 'RTO In Transit', count: 0 },
-  { label: 'RTO Delivered', count: 0 },
-  { label: 'Lost', count: 0 },
+  { label: 'Processing Order', count: 0, path: '/processing-order' },
+  { label: 'Manifested', count: 0, path: '/orders/manifested' },
+  { label: 'In Transit', count: 1, path: '/orders/in-transit' },
+  { label: 'NDR', count: 0, path: '/orders/ndr' },
+  { label: 'Pending', count: 0, path: '/orders/pending' },
+  { label: 'Out For Delivery', count: 0, path: '/orders/out-of-delivery' },
+  { label: 'Delivery', count: 0, path: '/orders/delivery' },
+  { label: 'RTO In Transit', count: 0, path: '/orders/rto-in-transit' },
+  { label: 'RTO Delivered', count: 0, path: '/orders/rto-delivery' },
+  { label: 'Return', count: 0, path: '/orders/return' },
+  { label: 'Lost', count: 0, path: '/orders/cancelled' },
 ];
 
 const ProcessingOrders = () => {
-  const [activeTab, setActiveTab] = useState('Processing Order');
+  const navigate = useNavigate();
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -200,9 +203,9 @@ const ProcessingOrders = () => {
           {tabs.map((tab) => (
             <button
               key={tab.label}
-              onClick={() => setActiveTab(tab.label)}
+              onClick={() => navigate(tab.path)}
               className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 ${
-                activeTab === tab.label
+                tab.path === '/processing-order'
                   ? 'text-[var(--color-text-primary)] border-[#d4af26]'
                   : 'text-[var(--color-text-secondary)] border-transparent hover:text-[var(--color-text-primary)]'
               }`}

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaPrint, FaPen, FaDownload, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { MdLocationOn } from 'react-icons/md';
+import api from '../../../lib/axios';
 
 const mockOrders = [
   {
@@ -52,6 +53,8 @@ const tabs = [
 
 const AllOrders = () => {
   const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('All Orders');
@@ -59,6 +62,42 @@ const AllOrders = () => {
     timeRange: '2026-03-07 to 2026-03-13',
     orderIds: '', awbNo: '', buyerName: '', paymentMethod: 'All', limit: '25',
   });
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await api.get('/api/orders/', { skipLoading: true });
+        // Map backend data to display format
+        const mapped = res.data.map((o) => ({
+          id: o.id,
+          customer: { name: o.customer_name, phone: o.customer_phone },
+          shipment: {
+            orderId: o.tracking_id,
+            awb: `AWB: ${o.tracking_id}`,
+            status: o.status.replace('_', ' '),
+            statusColor: o.status === 'DELIVERED' ? 'bg-green-500' : o.status === 'CANCELLED' ? 'bg-red-500' : 'bg-[#d4af26]',
+          },
+          route: { from: o.destination_pincode, to: o.destination_address?.split(',').pop()?.trim() || '', type: o.order_type },
+          payment: {
+            amount: `₹${parseFloat(o.cod_amount || 0).toFixed(2)}`,
+            method: o.order_type,
+            color: o.order_type === 'COD' ? 'text-green-400' : 'text-[#d4af26]',
+          },
+          weight: `${o.weight} kg`,
+          created: new Date(o.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+          actions: ['eye', 'print'],
+          status: o.status,
+        }));
+        setOrders(mapped);
+      } catch (err) {
+        console.log('Orders API not available, using mock data');
+        setOrders(mockOrders);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   const toggleSelect = (id) => {
     setSelectedOrders((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -171,18 +210,23 @@ const AllOrders = () => {
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
-                <th className="p-3 text-left w-10"><input type="checkbox" className="w-4 h-4 accent-[#d4af26] cursor-pointer" checked={selectedOrders.length === mockOrders.length} onChange={() => setSelectedOrders(selectedOrders.length === mockOrders.length ? [] : mockOrders.map(o => o.id))} /></th>
+                <th className="p-3 text-left w-10"><input type="checkbox" className="w-4 h-4 accent-[#d4af26] cursor-pointer" checked={selectedOrders.length === orders.length} onChange={() => setSelectedOrders(selectedOrders.length === orders.length ? [] : orders.map(o => o.id))} /></th>
                 <th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Customer Details</th>
                 <th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Shipment Details</th>
                 <th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Route</th>
                 <th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Payment</th>
                 <th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Weight</th>
                 <th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Created At</th>
+                <th className="p-3 text-center text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Status</th>
                 <th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {mockOrders.map((order) => (
+              {loading ? (
+                <tr><td colSpan="9" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">Loading orders...</td></tr>
+              ) : orders.length === 0 ? (
+                <tr><td colSpan="9" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">No orders found</td></tr>
+              ) : orders.map((order) => (
                 <tr key={order.id} className="border-b border-[var(--color-border)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                   <td className="p-3"><input type="checkbox" className="w-4 h-4 accent-[#d4af26] cursor-pointer" checked={selectedOrders.includes(order.id)} onChange={() => toggleSelect(order.id)} /></td>
                   <td className="p-3">
@@ -209,6 +253,26 @@ const AllOrders = () => {
                   </td>
                   <td className="p-3"><span className="text-xs text-[var(--color-text-primary)]">{order.weight}</span></td>
                   <td className="p-3"><span className="text-[11px] text-[var(--color-text-secondary)] whitespace-pre-line">{order.created}</span></td>
+                  <td className="p-3 text-center">
+                    {(() => {
+                      const statusMap = {
+                        PROCESSING: { label: 'Processing', bg: 'bg-gray-500' },
+                        MANIFESTED: { label: 'Manifested', bg: 'bg-[#d4af26]' },
+                        PICKUP_PENDING: { label: 'Pickup Pending', bg: 'bg-orange-500' },
+                        NOT_PICKED: { label: 'Not Picked', bg: 'bg-red-500' },
+                        IN_TRANSIT: { label: 'In Transit', bg: 'bg-blue-500' },
+                        OUT_FOR_DELIVERY: { label: 'Out for Delivery', bg: 'bg-blue-600' },
+                        DELIVERED: { label: 'Delivered', bg: 'bg-green-500' },
+                        NDR: { label: 'NDR', bg: 'bg-orange-600' },
+                        RTO_IN_TRANSIT: { label: 'RTO In Transit', bg: 'bg-purple-500' },
+                        RTO_DELIVERED: { label: 'RTO Delivered', bg: 'bg-purple-700' },
+                        RETURN: { label: 'Return', bg: 'bg-pink-500' },
+                        CANCELLED: { label: 'Cancelled', bg: 'bg-red-600' },
+                      };
+                      const s = statusMap[order.status] || { label: order.status || 'Unknown', bg: 'bg-gray-500' };
+                      return <span className={`text-[9px] font-bold text-white px-2.5 py-1 rounded-full ${s.bg}`}>{s.label}</span>;
+                    })()}
+                  </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1.5">
                       {order.actions.map((a, i) => <React.Fragment key={i}>{renderActionIcon(a)}</React.Fragment>)}

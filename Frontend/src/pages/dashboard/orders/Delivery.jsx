@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaDownload, FaEllipsisV, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import api from '../../../lib/axios';
 
 const tabs = [
   { label: 'Processing Order', count: 0, path: '/processing-order' },
@@ -18,10 +19,23 @@ const tabs = [
 
 const Delivery = () => {
   const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('Delivery');
   const [filters, setFilters] = useState({ timeRange: '2026-03-07 to 2026-03-13', orderIds: '', awbNo: '', buyerName: '', paymentMethod: 'All', limit: '25' });
   const inputClass = 'bg-transparent border border-[var(--color-border)] rounded-md px-3 py-2 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[#d4af26] transition-colors';
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await api.get('/api/orders/?status=DELIVERED', { skipLoading: true });
+        setOrders(res.data);
+      } catch { setOrders([]); }
+      finally { setLoading(false); }
+    };
+    fetchOrders();
+  }, []);
 
   return (
     <div className="flex-1 p-6 space-y-5">
@@ -67,7 +81,24 @@ const Delivery = () => {
       <div className="bg-[var(--color-bg-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
         <table className="w-full min-w-[900px]">
           <thead><tr className="border-b border-[var(--color-border)]"><th className="p-3 text-left w-10"><input type="checkbox" className="w-4 h-4 accent-[#d4af26]" /></th><th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase">Customer</th><th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase">Shipment</th><th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase">Route</th><th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase">Payment</th><th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase">Weight</th><th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase">Created</th><th className="p-3 text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase">Actions</th></tr></thead>
-          <tbody>{[1,2,3].map((i) => (<tr key={i} className="border-b border-[var(--color-border)] h-20"><td className="p-3"><input type="checkbox" className="w-4 h-4 accent-[#d4af26]" /></td><td colSpan="5"></td><td></td><td className="p-3"><div className="flex items-center gap-1.5"><button className="p-1.5 bg-[#d4af26] text-white rounded"><FaDownload className="text-xs" /></button><button className="p-1.5 bg-gray-500/30 text-[var(--color-text-secondary)] rounded"><div className="w-3.5 h-3.5 border border-current rounded-sm" /></button><button className="p-1.5 text-[var(--color-text-secondary)]"><FaEllipsisV className="text-xs" /></button></div></td></tr>))}</tbody>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan="8" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">Loading...</td></tr>
+            ) : orders.length === 0 ? (
+              <tr><td colSpan="8" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">No delivered orders</td></tr>
+            ) : orders.map((o) => (
+              <tr key={o.id} className="border-b border-[var(--color-border)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                <td className="p-3"><input type="checkbox" className="w-4 h-4 accent-[#d4af26]" /></td>
+                <td className="p-3"><span className="text-sm font-semibold text-[var(--color-text-primary)] block">{o.customer_name}</span><span className="text-xs text-[var(--color-text-secondary)]">{o.customer_phone}</span></td>
+                <td className="p-3"><span className="text-sm font-bold text-[#d4af26]">{o.tracking_id}</span><span className="text-[9px] font-bold text-white px-2 py-0.5 rounded bg-green-500 ml-2">DELIVERED</span></td>
+                <td className="p-3 text-xs text-[var(--color-text-secondary)]">{o.destination_pincode}</td>
+                <td className="p-3"><span className={`text-xs font-bold ${o.order_type === 'COD' ? 'text-green-400' : 'text-[#d4af26]'}`}>{o.order_type}</span><span className="text-sm text-[var(--color-text-primary)] block">₹{o.cod_amount}</span></td>
+                <td className="p-3 text-xs text-[var(--color-text-primary)]">{o.weight} kg</td>
+                <td className="p-3 text-[11px] text-[var(--color-text-secondary)]">{new Date(o.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                <td className="p-3"><div className="flex items-center gap-1.5"><button className="p-1.5 bg-[#d4af26] text-white rounded"><FaDownload className="text-xs" /></button><button className="p-1.5 text-[var(--color-text-secondary)]"><FaEllipsisV className="text-xs" /></button></div></td>
+              </tr>
+            ))}
+          </tbody>
         </table>
         <div className="flex items-center justify-end gap-1 p-4">
           <button onClick={() => setCurrentPage(p => Math.max(1,p-1))} className="w-8 h-8 flex items-center justify-center rounded text-[var(--color-text-secondary)]"><FaChevronLeft className="text-xs" /></button>

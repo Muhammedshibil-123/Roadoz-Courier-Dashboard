@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
 } from 'recharts';
@@ -8,6 +8,7 @@ import {
   MdOutlineAssignmentReturn,
   MdOutlineAccountBalanceWallet
 } from 'react-icons/md';
+import api from '../../lib/axios';
 
 // ─── Mock Data ───────────────────────────────────────────────
 const walletTransactionData = [
@@ -178,6 +179,19 @@ const DonutChartCard = ({ title, data, centerValue }) => (
 // ─── Dashboard Page ─────────────────────────────────────────
 const Dashboard = () => {
   const [dateRange] = useState('2026-03-07 to 2026-03-13');
+  const [stats, setStats] = useState({ TOTAL: 0, DELIVERED: 0, RTO: 0, PENDING: 0 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/api/orders/stats/', { skipLoading: true });
+        setStats(res.data);
+      } catch (err) {
+        console.log('Stats API not available yet, using defaults');
+      }
+    };
+    fetchStats();
+  }, []);
 
   return (
     <div className="flex-1 p-6 space-y-6">
@@ -198,28 +212,28 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="TOTAL ORDERS"
-          value="4"
+          value={stats.TOTAL || 0}
           subtitle="From 2026-03- to 2026-03-13"
           iconBg="bg-blue-500"
           icon={<MdOutlineReceipt className="text-white text-xl" />}
         />
         <StatCard
           title="DELIVERED ORDERS"
-          value="0"
+          value={stats.DELIVERED || 0}
           subtitle="With selected period"
           iconBg="bg-orange-500"
           icon={<MdOutlineLocalShipping className="text-white text-xl" />}
         />
         <StatCard
           title="RTO ORDERS"
-          value="0"
+          value={stats.RTO || 0}
           subtitle="In selected date range"
           iconBg="bg-teal-500"
           icon={<MdOutlineAssignmentReturn className="text-white text-xl" />}
         />
         <StatCard
-          title="TOTAL REVENUE"
-          value="0"
+          title="PENDING ORDERS"
+          value={stats.PENDING || 0}
           subtitle="From 2026-03- to 2026-03-13"
           iconBg="bg-red-500"
           icon={<MdOutlineAccountBalanceWallet className="text-white text-xl" />}

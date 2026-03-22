@@ -40,6 +40,7 @@ import Invoices from "./pages/dashboard/finance/Invoices";
 import Consignees from "./pages/dashboard/Consignees";
 import Tickets from "./pages/dashboard/Tickets";
 import Reports from "./pages/dashboard/Reports";
+import AdminControl from "./pages/dashboard/AdminControl";
 
 // Settings sub-pages
 import GeneralDetails from "./pages/dashboard/settings/GeneralDetails";
@@ -149,6 +150,9 @@ function App() {
             <Route path="/settings/label-settings" element={<LabelSettings />} />
             <Route path="/settings/kyc" element={<KYC />} />
           </Route>
+
+          {/* Admin control — outside sidebar, no navbar */}
+          <Route path="/admin-control" element={<AdminControl />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />

@@ -61,9 +61,10 @@ const Sidebar = () => {
             children: [
                 { name: "All Orders", path: "/orders/all" },
                 { name: "Manifested", path: "/orders/manifested" },
-                { name: "In Transit order", path: "/orders/in-transit" },
-                { name: "Not Picked", path: "/orders/ndr" },
                 { name: "Pending", path: "/orders/pending" },
+                { name: "In Transit order", path: "/orders/in-transit" },
+                { name: "Not Picked", path: "/orders/not-picked" },
+                { name: "NDR", path: "/orders/ndr" },
                 { name: "Out of Delivery", path: "/orders/out-of-delivery" },
                 { name: "Delivery", path: "/orders/delivery" },
                 { name: "RTO In Transit", path: "/orders/rto-in-transit" },

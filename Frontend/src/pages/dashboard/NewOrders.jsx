@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MdSearch, MdDelete, MdAdd } from 'react-icons/md';
+import api from '../../lib/axios';
 
 const NewOrders = () => {
+  const navigate = useNavigate();
   const [orderType, setOrderType] = useState('B2C');
   const [paymentMethod, setPaymentMethod] = useState('prepaid');
+  const [submitting, setSubmitting] = useState(false);
 
   // Consignee
   const [consignee, setConsignee] = useState({
@@ -340,8 +344,31 @@ const NewOrders = () => {
 
       {/* Submit */}
       <div className="flex justify-end">
-        <button className="bg-[#d4af26] hover:bg-[#c39f19] text-white font-semibold text-sm px-8 py-2.5 rounded-md transition-colors duration-200">
-          Submit
+        <button
+          onClick={async () => {
+            setSubmitting(true);
+            try {
+              await api.post('/api/orders/', {
+                customer_name: consignee.name,
+                customer_phone: consignee.mobile,
+                destination_address: [consignee.address1, consignee.address2, consignee.city, consignee.state].filter(Boolean).join(', '),
+                destination_pincode: consignee.pincode,
+                weight: totalWeight || 0.5,
+                order_type: paymentMethod === 'COD' ? 'COD' : 'PREPAID',
+                cod_amount: paymentMethod === 'COD' ? (parseFloat(orderValue) || 0) : 0,
+              });
+              alert('Order created successfully!');
+              navigate('/orders/all');
+            } catch (err) {
+              alert(err.response?.data?.detail || 'Failed to create order. Make sure backend is running.');
+            } finally {
+              setSubmitting(false);
+            }
+          }}
+          disabled={submitting}
+          className="bg-[#d4af26] hover:bg-[#c39f19] text-white font-semibold text-sm px-8 py-2.5 rounded-md transition-colors duration-200 disabled:opacity-50"
+        >
+          {submitting ? 'Submitting...' : 'Submit'}
         </button>
       </div>
     </div>

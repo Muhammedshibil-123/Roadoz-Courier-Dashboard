@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaDownload, FaEllipsisV, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import api from '../../../lib/axios';
 
 const tabs = [
   { label: 'Processing Order', count: 0, path: '/processing-order' },
@@ -18,12 +19,25 @@ const tabs = [
 
 const InTransit = () => {
   const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('In Transit order');
   const [filters, setFilters] = useState({
     timeRange: '2026-03-07 to 2026-03-13',
     orderIds: '', awbNo: '', buyerName: '', paymentMethod: 'All', limit: '25',
   });
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await api.get('/api/orders/?status=IN_TRANSIT', { skipLoading: true });
+        setOrders(res.data);
+      } catch { setOrders([]); }
+      finally { setLoading(false); }
+    };
+    fetchOrders();
+  }, []);
 
   const inputClass = 'bg-transparent border border-[var(--color-border)] rounded-md px-3 py-2 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[#d4af26] transition-colors';
 
@@ -103,15 +117,31 @@ const InTransit = () => {
               </tr>
             </thead>
             <tbody>
-              {[1, 2, 3].map((i) => (
-                <tr key={i} className="border-b border-[var(--color-border)] h-20">
+              {loading ? (
+                <tr><td colSpan="8" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">Loading...</td></tr>
+              ) : orders.length === 0 ? (
+                <tr><td colSpan="8" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">No in-transit orders</td></tr>
+              ) : orders.map((o) => (
+                <tr key={o.id} className="border-b border-[var(--color-border)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                   <td className="p-3"><input type="checkbox" className="w-4 h-4 accent-[#d4af26] cursor-pointer" /></td>
-                  <td colSpan="5" className="p-3"></td>
-                  <td className="p-3"></td>
+                  <td className="p-3">
+                    <span className="text-sm font-semibold text-[var(--color-text-primary)] block">{o.customer_name}</span>
+                    <span className="text-xs text-[var(--color-text-secondary)]">{o.customer_phone}</span>
+                  </td>
+                  <td className="p-3">
+                    <span className="text-sm font-bold text-[#d4af26]">{o.tracking_id}</span>
+                    <span className="text-[9px] font-bold text-white px-2 py-0.5 rounded bg-blue-500 ml-2">IN TRANSIT</span>
+                  </td>
+                  <td className="p-3 text-xs text-[var(--color-text-secondary)]">{o.destination_pincode}<br/><span className="text-[10px]">{o.destination_address?.substring(0, 30)}</span></td>
+                  <td className="p-3">
+                    <span className={`text-xs font-bold ${o.order_type === 'COD' ? 'text-green-400' : 'text-[#d4af26]'}`}>{o.order_type}</span>
+                    <span className="text-sm text-[var(--color-text-primary)] block">₹{o.cod_amount}</span>
+                  </td>
+                  <td className="p-3 text-xs text-[var(--color-text-primary)]">{o.weight} kg</td>
+                  <td className="p-3 text-[11px] text-[var(--color-text-secondary)]">{new Date(o.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                   <td className="p-3">
                     <div className="flex items-center gap-1.5">
                       <button className="p-1.5 bg-[#d4af26] text-white rounded hover:bg-[#c39f19] transition-colors"><FaDownload className="text-xs" /></button>
-                      <button className="p-1.5 bg-gray-500/30 text-[var(--color-text-secondary)] rounded"><div className="w-3.5 h-3.5 border border-current rounded-sm" /></button>
                       <button className="p-1.5 text-[var(--color-text-secondary)] hover:text-[#d4af26] transition-colors"><FaEllipsisV className="text-xs" /></button>
                     </div>
                   </td>

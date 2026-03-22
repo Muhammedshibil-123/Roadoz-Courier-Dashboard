@@ -21,7 +21,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Order.objects.filter(user=self.request.user)
+        qs = Order.objects.select_related('user').filter(user=self.request.user)
         status_filter = self.request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -36,7 +36,7 @@ class OrderDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        return Order.objects.select_related('user').filter(user=self.request.user)
 
 
 # ── Seller workflow: tick to advance status ───────────────────────────────────
@@ -47,6 +47,9 @@ SELLER_TRANSITIONS = {
     "PICKUP_PENDING": "IN_TRANSIT",
 }
 
+
+from django.db.models import Count
+import decimal
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
@@ -66,6 +69,33 @@ def advance_order(request, pk):
         return Response(
             {"detail": f"Cannot advance from {order.status}. Use admin-control for further changes."},
             status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # If advancing to IN_TRANSIT (package is picked up), deduct ₹100 from Wallet
+    if order.status == "PICKUP_PENDING" and next_status == "IN_TRANSIT":
+        from finance.models import Wallet, WalletTransaction
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        delivery_charge = decimal.Decimal("100.00")
+        
+        if wallet.balance < delivery_charge:
+            return Response(
+                {"detail": "Insufficient wallet balance. Please add at least ₹100 to your wallet as delivery charge."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+        opening_balance = wallet.balance
+        wallet.balance -= delivery_charge
+        closing_balance = wallet.balance
+        wallet.save(update_fields=["balance"])
+
+        # Create Debit Transaction
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            amount=delivery_charge,
+            transaction_type="DEBIT",
+            opening_balance=opening_balance,
+            closing_balance=closing_balance,
+            description=f"Delivery charge for order {order.tracking_id}",
         )
 
     order.status = next_status
@@ -125,9 +155,22 @@ def update_order_status(request, order_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def order_stats(request):
+    """
+    N+1 Query Issue Fixed: Use .values().annotate() to get all counts in a single query
+    instead of calling .count() for every single status.
+    """
     qs = Order.objects.filter(user=request.user)
-    stats = {}
-    for choice_value, choice_label in Order.Status.choices:
-        stats[choice_value] = qs.filter(status=choice_value).count()
-    stats["TOTAL"] = qs.count()
+    
+    # Run a single query with GROUP BY status
+    counts = qs.values('status').annotate(count=Count('status'))
+    
+    # Initialize all stats to 0
+    stats = {choice_value: 0 for choice_value, _ in Order.Status.choices}
+    
+    total = 0
+    for entry in counts:
+        stats[entry['status']] = entry['count']
+        total += entry['count']
+        
+    stats["TOTAL"] = total
     return Response(stats)

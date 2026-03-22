@@ -33,6 +33,7 @@ import ChannelIntegration from "./pages/dashboard/tools/ChannelIntegration";
 
 // Finance sub-pages
 import Wallet from "./pages/dashboard/finance/Wallet";
+import AddMoney from "./pages/dashboard/finance/AddMoney";
 import CODRemittance from "./pages/dashboard/finance/CODRemittance";
 import Invoices from "./pages/dashboard/finance/Invoices";
 
@@ -134,6 +135,7 @@ function App() {
 
             {/* Finance sub-pages */}
             <Route path="/finance/wallet" element={<Wallet />} />
+            <Route path="/finance/add-money" element={<AddMoney />} />
             <Route path="/finance/cod-remittance" element={<CODRemittance />} />
             <Route path="/finance/invoices" element={<Invoices />} />
 

@@ -1,53 +1,29 @@
-import React, { useState } from 'react';
-
-const mockTransactions = [
-  {
-    id: '#0521',
-    amount: 'Rs. 15.52',
-    amountColor: 'text-red-400',
-    type: 'DEBIT',
-    typeColor: 'bg-red-500',
-    openingBal: 'Rs. 450.00',
-    closingBal: 'Rs. 433.48',
-    description: 'Debited for order id #7841 (processed by Admin #2)',
-    createdAt: 'Oct 24, 2023\n14:22',
-  },
-  {
-    id: '#0520',
-    amount: 'Rs.\n1,200.00',
-    amountColor: 'text-green-400',
-    type: 'CREDIT',
-    typeColor: 'bg-green-500',
-    openingBal: 'Rs. 0.00',
-    closingBal: 'Rs.\n1,200.00',
-    description: 'Wallet top-up via Gateway Transaction #tx_90892',
-    createdAt: 'Oct 24, 2023\n10:05',
-  },
-  {
-    id: '#0519',
-    amount: 'Rs. 57.90',
-    amountColor: 'text-red-400',
-    type: 'DEBIT',
-    typeColor: 'bg-red-500',
-    openingBal: 'Rs. 539.10',
-    closingBal: 'Rs. 450.00',
-    description: 'Shipment adjustment for order #7830',
-    createdAt: 'Oct 23, 2023\n18:45',
-  },
-  {
-    id: '#0518',
-    amount: 'Rs. 24.00',
-    amountColor: 'text-red-400',
-    type: 'DEBIT',
-    typeColor: 'bg-red-500',
-    openingBal: 'Rs. 563.10',
-    closingBal: 'Rs. 539.10',
-    description: 'Admin deduction for manual correction (order 27144)',
-    createdAt: 'Oct 23, 2023\n11:30',
-  },
-];
+import React, { useState, useEffect } from 'react';
+import api from '../../../lib/axios';
 
 const Wallet = () => {
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWalletData = async () => {
+      try {
+        const [walletRes, txRes] = await Promise.all([
+          api.get('/api/finance/wallet/'),
+          api.get('/api/finance/wallet/transactions/')
+        ]);
+        setBalance(walletRes.data.balance);
+        setTransactions(txRes.data);
+      } catch (err) {
+        console.error("Failed to fetch wallet data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWalletData();
+  }, []);
+
   const [filters, setFilters] = useState({
     timeRange: '', orderIds: '', type: 'All', limit: '25',
   });
@@ -114,19 +90,38 @@ const Wallet = () => {
               </tr>
             </thead>
             <tbody>
-              {mockTransactions.map((tx, i) => (
-                <tr key={i} className="border-b border-[var(--color-border)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                  <td className="p-3 text-center text-sm font-bold text-[#d4af26]">{tx.id}</td>
-                  <td className={`p-3 text-center text-sm font-semibold whitespace-pre-line ${tx.amountColor}`}>{tx.amount}</td>
-                  <td className="p-3 text-center">
-                    <span className={`text-[10px] font-bold text-white px-3 py-1 rounded ${tx.typeColor}`}>{tx.type}</span>
-                  </td>
-                  <td className="p-3 text-center text-sm text-[var(--color-text-primary)]">{tx.openingBal}</td>
-                  <td className="p-3 text-center text-sm text-[var(--color-text-primary)] whitespace-pre-line">{tx.closingBal}</td>
-                  <td className="p-3 text-center text-xs text-[var(--color-text-secondary)] max-w-[200px]">{tx.description}</td>
-                  <td className="p-3 text-center text-xs text-[var(--color-text-secondary)] whitespace-pre-line">{tx.createdAt}</td>
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">Loading transactions...</td>
                 </tr>
-              ))}
+              ) : transactions.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center text-sm text-[var(--color-text-secondary)]">No transactions yet</td>
+                </tr>
+              ) : (
+                transactions.map((tx) => (
+                  <tr key={tx.id} className="border-b border-[var(--color-border)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-3 text-center text-sm font-bold text-[#d4af26]">#{tx.id}</td>
+                    <td className={`p-3 text-center text-sm font-semibold whitespace-pre-line ${tx.transaction_type === 'CREDIT' ? 'text-green-400' : 'text-red-400'}`}>
+                      {tx.transaction_type === 'CREDIT' ? '+' : '-'}₹{tx.amount}
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`text-[10px] font-bold text-white px-3 py-1 rounded ${tx.transaction_type === 'CREDIT' ? 'bg-green-500' : 'bg-red-500'}`}>
+                        {tx.transaction_type}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center text-sm text-[var(--color-text-primary)]">₹{tx.opening_balance}</td>
+                    <td className="p-3 text-center text-sm text-[var(--color-text-primary)] whitespace-pre-line">₹{tx.closing_balance}</td>
+                    <td className="p-3 text-center text-xs text-[var(--color-text-secondary)] max-w-[200px]">{tx.description}</td>
+                    <td className="p-3 text-center text-xs text-[var(--color-text-secondary)] whitespace-pre-line">
+                      {new Date(tx.created_at).toLocaleString('en-IN', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

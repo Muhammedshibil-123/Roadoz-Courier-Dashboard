@@ -4,15 +4,29 @@ import { MdNotificationsNone, MdSearch, MdDarkMode, MdLightMode } from "react-ic
 import { FaBars } from "react-icons/fa";
 import logo from "../assets/images/logo.png";
 
+import { useNavigate } from "react-router-dom";
+import api from "../lib/axios";
+
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
-    const [balance] = useState(689);
+    const [balance, setBalance] = useState(0);
     const [isOnline, setIsOnline] = useState(false);
     
     // 2. Add state for Dark Mode
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const navigate = useNavigate();
 
     // 3. Check for existing theme preference on initial load
     useEffect(() => {
+        const fetchBalance = async () => {
+            try {
+                const res = await api.get('/api/finance/wallet/', { skipLoading: true });
+                setBalance(res.data.balance);
+            } catch (err) {
+                console.error("Failed to fetch balance", err);
+            }
+        };
+        fetchBalance();
+
         const savedTheme = localStorage.getItem("theme");
         if (savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
             document.documentElement.classList.add("dark");
@@ -107,8 +121,9 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             text-[var(--color-text-primary)] transition-colors duration-300
           "
                 >
-                    <span className="text-xs sm:text-sm font-medium">₹ 689</span>
+                    <span className="text-xs sm:text-sm font-medium">₹ {balance}</span>
                     <button
+                        onClick={() => navigate('/finance/add-money')}
                         className="
               w-5 h-5 rounded-full bg-[#d4af26]
               text-white font-bold text-sm

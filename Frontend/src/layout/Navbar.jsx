@@ -1,98 +1,146 @@
-import React, { useState } from 'react';
-import { MdNotificationsNone, MdSearch, MdDarkMode } from 'react-icons/md';
-import { FaBars } from 'react-icons/fa';
-import logo from '../assets/images/logo.png';
+import React, { useState, useEffect } from "react";
+// 1. Import MdLightMode for the icon swap
+import { MdNotificationsNone, MdSearch, MdDarkMode, MdLightMode } from "react-icons/md";
+import { FaBars } from "react-icons/fa";
+import logo from "../assets/images/logo.png";
 
-const Navbar = () => {
-  const [balance] = useState(689);
-  const [isOnline, setIsOnline] = useState(false);
+const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
+    const [balance] = useState(689);
+    const [isOnline, setIsOnline] = useState(false);
+    
+    // 2. Add state for Dark Mode
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
-  return (
-    <nav className="
-      w-full h-16 flex-shrink-0
-      bg-[#0d1b2a] border-b border-[#1e293b]
-      flex items-center justify-between
-      px-4 sm:px-6
-    ">
+    // 3. Check for existing theme preference on initial load
+    useEffect(() => {
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+            document.documentElement.classList.add("dark");
+            setIsDarkMode(true);
+        } else {
+            document.documentElement.classList.remove("dark");
+            setIsDarkMode(false);
+        }
+    }, []);
 
-      {/* Left: Logo + hamburger */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <img
-            src={logo}
-            alt="Roadoz"
-            className="w-8 h-8 object-contain flex-shrink-0"
-          />
-          <span className="text-[#f5b800] font-bold text-sm tracking-widest uppercase hidden sm:block">
-            Roadoz
-          </span>
-        </div>
-        <button className="text-gray-400 hover:text-white transition-colors p-1 rounded">
-          <FaBars className="text-base" />
-        </button>
-      </div>
+    // 4. Function to handle the toggle
+    const toggleTheme = () => {
+        if (isDarkMode) {
+            document.documentElement.classList.remove("dark");
+            localStorage.setItem("theme", "light");
+            setIsDarkMode(false);
+        } else {
+            document.documentElement.classList.add("dark");
+            localStorage.setItem("theme", "dark");
+            setIsDarkMode(true);
+        }
+    };
 
-      {/* Right: Actions + icons */}
-      <div className="flex items-center gap-2 sm:gap-3">
-
-        {/* Import orders */}
-        <button className="
-          bg-[#f5b800] hover:bg-[#d4a000] active:scale-95
-          text-[#0d1b2a] font-semibold text-sm
-          px-4 py-1.5 rounded-md transition-all whitespace-nowrap
-        ">
-          Import orders
-        </button>
-
-        {/* Online toggle */}
-        <button
-          onClick={() => setIsOnline((v) => !v)}
-          className={`
-            relative w-11 h-6 rounded-full transition-colors duration-300 flex-shrink-0
-            ${isOnline ? 'bg-[#f5b800]' : 'bg-gray-600'}
-          `}
-          title={isOnline ? 'Online' : 'Offline'}
-        >
-          <span
-            className={`
-              absolute top-0.5 w-5 h-5 bg-white rounded-full shadow
-              transition-transform duration-300
-              ${isOnline ? 'translate-x-5' : 'translate-x-0.5'}
-            `}
-          />
-        </button>
-
-        {/* Balance chip */}
-        <div className="flex items-center gap-2 border border-[#f5b800]/40 rounded-md px-3 py-1.5 flex-shrink-0">
-          <span className="text-white text-sm font-medium">₹ {balance}</span>
-          <button
+    return (
+        <nav
             className="
-              w-5 h-5 bg-[#f5b800] hover:bg-[#d4a000]
-              rounded-full text-[#0d1b2a] font-bold text-sm
-              flex items-center justify-center leading-none transition-colors
+        h-16 w-full flex-shrink-0
+        /* 5. Replaced hardcoded bg colors with your CSS variables */
+        bg-[var(--color-bg-surface)] border-b border-[var(--color-border)]
+        flex items-center justify-between
+        px-4 md:px-6 transition-colors duration-300
+      "
+        >
+            {/* Left */}
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+
+                    <button
+                        onClick={() => setSidebarOpen((prev) => !prev)}
+                        className="
+              p-2 rounded-md text-[#d4af26]
+              hover:bg-black/10 dark:hover:bg-white/5 hover:text-[#f3cc44]
+              transition-all duration-300
             "
-            title="Add balance"
-          >
-            +
-          </button>
-        </div>
+                        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+                    >
+                        <FaBars className="text-lg" />
+                    </button>
+                    <img
+                        src={logo}
+                        alt="Roadoz"
+                        className="w-14 h-14 object-contain flex-shrink-0"
+                    />
+                </div>
+            </div>
 
-        {/* Icons */}
-        <div className="flex items-center">
-          <button className="p-2 text-gray-400 hover:text-white transition-colors rounded hover:bg-white/5">
-            <MdNotificationsNone className="text-xl" />
-          </button>
-          <button className="p-2 text-gray-400 hover:text-white transition-colors rounded hover:bg-white/5">
-            <MdSearch className="text-xl" />
-          </button>
-          <button className="p-2 text-gray-400 hover:text-white transition-colors rounded hover:bg-white/5">
-            <MdDarkMode className="text-xl" />
-          </button>
-        </div>
+            {/* Right */}
+            <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                    className="
+            hidden sm:inline-flex
+            bg-[#d4af26] hover:bg-[#c39f19]
+            text-white font-medium text-xs sm:text-sm
+            px-4 py-2 rounded-md transition-all duration-200
+          "
+                >
+                    Import orders
+                </button>
 
-      </div>
-    </nav>
-  );
+                {/* Online toggle */}
+                <button
+                    onClick={() => setIsOnline((v) => !v)}
+                    className={`
+            relative h-8 w-14 rounded-full transition-all duration-300
+            ${isOnline ? "bg-[#d4af26]" : "bg-[#d1d5db]"}
+          `}
+                    title={isOnline ? "Online" : "Offline"}
+                >
+                    <span
+                        className={`
+              absolute top-1 h-6 w-6 rounded-full bg-white shadow-md transition-all duration-300
+              ${isOnline ? "left-7" : "left-1"}
+            `}
+                    />
+                </button>
+
+                {/* Balance */}
+                <div
+                    className="
+            flex items-center gap-2 rounded-full
+            bg-gray-200 dark:bg-gray-700 px-2.5 py-1.5
+            text-[var(--color-text-primary)] transition-colors duration-300
+          "
+                >
+                    <span className="text-xs sm:text-sm font-medium">₹ 689</span>
+                    <button
+                        className="
+              w-5 h-5 rounded-full bg-[#d4af26]
+              text-white font-bold text-sm
+              flex items-center justify-center
+              hover:bg-[#c39f19] transition-colors
+            "
+                        title="Add balance"
+                    >
+                        +
+                    </button>
+                </div>
+
+                {/* Icons */}
+                <div className="flex items-center">
+                    <button className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                        <MdNotificationsNone className="text-xl" />
+                    </button>
+                    <button className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                        <MdSearch className="text-xl" />
+                    </button>
+                    
+                    {/* 6. Attach toggle function and dynamic icon */}
+                    <button 
+                      onClick={toggleTheme}
+                      className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                    >
+                        {isDarkMode ? <MdLightMode className="text-xl" /> : <MdDarkMode className="text-xl" />}
+                    </button>
+                </div>
+            </div>
+        </nav>
+    );
 };
 
 export default Navbar;

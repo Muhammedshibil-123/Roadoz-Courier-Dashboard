@@ -7,6 +7,8 @@ import { setCredentials, logout, finishInitialLoad } from "./redux/authSlice";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
+import NewOrders from "./pages/dashboard/NewOrders";
+import ProcessingOrders from "./pages/dashboard/ProcessingOrders";
 import Sidebar from "./layout/Sidebar";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 
@@ -74,6 +76,8 @@ function App() {
         <Route element={<PrivateRoute />}>
           <Route element={<Sidebar />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/new-orders" element={<NewOrders />} />
+            <Route path="/processing-order" element={<ProcessingOrders />} />
           </Route>
         </Route>
 

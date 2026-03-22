@@ -356,6 +356,7 @@ const NewOrders = () => {
                 weight: totalWeight || 0.5,
                 order_type: paymentMethod === 'COD' ? 'COD' : 'PREPAID',
                 cod_amount: paymentMethod === 'COD' ? (parseFloat(orderValue) || 0) : 0,
+                product_amount: parseFloat(orderValue) || 0,
               });
               alert('Order created successfully!');
               navigate('/orders/all');

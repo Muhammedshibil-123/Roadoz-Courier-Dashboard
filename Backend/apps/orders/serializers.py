@@ -15,6 +15,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "weight",
             "order_type",
             "cod_amount",
+            "product_amount",
             "status",
             "status_changed_at",
             "created_at",

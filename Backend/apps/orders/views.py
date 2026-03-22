@@ -28,7 +28,29 @@ class OrderListCreateView(generics.ListCreateAPIView):
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        from finance.models import Wallet, WalletTransaction
+        import decimal
+
+        order = serializer.save(user=self.request.user)
+        
+        # 1. PREPAID Order Creation (CREDIT Product Revenue)
+        if order.order_type == Order.OrderType.PREPAID and getattr(order, 'product_amount', 0) > 0:
+            wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
+            amount_to_credit = order.product_amount
+            
+            opening_balance = wallet.balance
+            wallet.balance += amount_to_credit
+            closing_balance = wallet.balance
+            wallet.save(update_fields=["balance"])
+            
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                amount=amount_to_credit,
+                transaction_type="CREDIT",
+                opening_balance=opening_balance,
+                closing_balance=closing_balance,
+                description=f"Prepaid Product Revenue for Order {order.tracking_id}",
+            )
 
 
 class OrderDetailView(generics.RetrieveAPIView):
@@ -143,7 +165,55 @@ def update_order_status(request, order_id):
     serializer = OrderStatusSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    order.status = serializer.validated_data["status"]
+    new_status = serializer.validated_data["status"]
+    
+    from finance.models import Wallet, WalletTransaction
+    import decimal
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+
+    # 3. COD Order Delivered (CREDIT Product Revenue)
+    if new_status == "DELIVERED" and order.order_type == "COD" and order.status != "DELIVERED":
+        desc = f"COD Delivered Revenue for Order {order.tracking_id}"
+        # Ensure idempotent (no double credits)
+        if not WalletTransaction.objects.filter(wallet=wallet, description=desc, transaction_type="CREDIT").exists():
+            amount_to_credit = order.product_amount
+            if amount_to_credit > 0:
+                opening_balance = wallet.balance
+                wallet.balance += amount_to_credit
+                closing_balance = wallet.balance
+                wallet.save(update_fields=["balance"])
+                
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=amount_to_credit,
+                    transaction_type="CREDIT",
+                    opening_balance=opening_balance,
+                    closing_balance=closing_balance,
+                    description=desc,
+                )
+
+    # 4. Return/Cancelled Orders (DEBIT/Reverse Product Revenue)
+    if new_status in ["RETURN", "CANCELLED", "RTO_DELIVERED"] and order.status not in ["RETURN", "CANCELLED", "RTO_DELIVERED"]:
+        desc = f"Product Revenue Reversal for Return Order {order.tracking_id}"
+        # Ensure idempotent
+        if not WalletTransaction.objects.filter(wallet=wallet, description=desc, transaction_type="DEBIT").exists():
+            amount_to_reverse = order.product_amount
+            if amount_to_reverse > 0:
+                opening_balance = wallet.balance
+                wallet.balance -= amount_to_reverse
+                closing_balance = wallet.balance
+                wallet.save(update_fields=["balance"])
+                
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=amount_to_reverse,
+                    transaction_type="DEBIT",
+                    opening_balance=opening_balance,
+                    closing_balance=closing_balance,
+                    description=desc,
+                )
+
+    order.status = new_status
     order.status_changed_at = timezone.now()
     order.save(update_fields=["status", "status_changed_at", "updated_at"])
 

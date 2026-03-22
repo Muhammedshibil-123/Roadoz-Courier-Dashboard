@@ -52,6 +52,12 @@ class Order(models.Model):
         default=0,
         help_text="₹0 if prepaid",
     )
+    product_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Total product value / selling price",
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

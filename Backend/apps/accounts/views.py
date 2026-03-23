@@ -417,14 +417,16 @@ class ChangePasswordView(APIView):
 # --- Settings and Addresses Views ---
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
-from .models import PickupAddress, RTOAddress, LabelSetting
+from .models import PickupAddress, RTOAddress, LabelSetting, NonDeliveryPincode
 from .serializers import (
     GeneralDetailsSerializer,
     KYCSerializer,
     PickupAddressSerializer,
     RTOAddressSerializer,
-    LabelSettingSerializer
+    LabelSettingSerializer,
+    NonDeliveryPincodeSerializer
 )
+from rest_framework.decorators import api_view, permission_classes as perm_classes_dec
 
 class GeneralDetailsView(generics.RetrieveUpdateAPIView):
     serializer_class = GeneralDetailsSerializer
@@ -482,3 +484,38 @@ class LabelSettingView(generics.RetrieveUpdateAPIView):
         # Get or create label settings for user
         obj, created = LabelSetting.objects.get_or_create(user=self.request.user)
         return obj
+
+
+class NonDeliveryPincodeViewSet(viewsets.ModelViewSet):
+    serializer_class = NonDeliveryPincodeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return NonDeliveryPincode.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(added_by=self.request.user)
+
+
+@api_view(['GET'])
+@perm_classes_dec([IsAuthenticated])
+def check_pincode(request):
+    """Check if a pincode is serviceable (not in the blocked list)."""
+    pincode = request.query_params.get('pincode', '').strip()
+    if not pincode:
+        return Response({'error': 'Pincode is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    is_blocked = NonDeliveryPincode.objects.filter(pincode=pincode).exists()
+    if is_blocked:
+        entry = NonDeliveryPincode.objects.get(pincode=pincode)
+        return Response({
+            'pincode': pincode,
+            'serviceable': False,
+            'reason': entry.reason or 'This pincode is currently not serviceable.',
+        })
+    else:
+        return Response({
+            'pincode': pincode,
+            'serviceable': True,
+            'message': 'This pincode is serviceable. We can deliver here!',
+        })

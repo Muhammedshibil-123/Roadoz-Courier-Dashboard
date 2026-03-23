@@ -108,3 +108,78 @@ class LabelSetting(models.Model):
 
     def __str__(self):
         return f"Label Settings for {self.user.username}"
+
+
+class NonDeliveryPincode(models.Model):
+    pincode = models.CharField(max_length=10, unique=True)
+    reason = models.CharField(max_length=200, null=True, blank=True)
+    added_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="blocked_pincodes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Non-Delivery: {self.pincode}"
+
+    class Meta:
+        ordering = ['pincode']
+
+
+class SupportTicket(models.Model):
+    PRIORITY_CHOICES = (
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('URGENT', 'Urgent'),
+    )
+    STATUS_CHOICES = (
+        ('OPEN', 'Open'),
+        ('ANSWERED', 'Answered'),
+        ('CLOSED', 'Closed'),
+    )
+    CATEGORY_CHOICES = (
+        ('DELIVERY_ISSUE', 'Delivery Issue'),
+        ('WEIGHT_DISPUTE', 'Weight Dispute'),
+        ('STUCK_IN_TRANSIT', 'Stuck in Transit'),
+        ('PAYMENT_ISSUE', 'Payment Issue'),
+        ('OTHER', 'Other'),
+    )
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='tickets')
+    order = models.ForeignKey('orders.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
+    ticket_id = models.CharField(max_length=20, unique=True, editable=False, db_index=True)
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='OTHER')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='MEDIUM')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='OPEN')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"#{self.ticket_id} — {self.subject}"
+
+    def save(self, *args, **kwargs):
+        if not self.ticket_id:
+            import random
+            tid = f"TKT-{random.randint(1000, 9999)}"
+            while SupportTicket.objects.filter(ticket_id=tid).exists():
+                tid = f"TKT-{random.randint(1000, 9999)}"
+            self.ticket_id = tid
+        super().save(*args, **kwargs)
+
+
+class TicketReply(models.Model):
+    ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name='replies')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    message = models.TextField()
+    is_admin = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        sender = "Admin" if self.is_admin else self.user.username
+        return f"Reply by {sender} on #{self.ticket.ticket_id}"

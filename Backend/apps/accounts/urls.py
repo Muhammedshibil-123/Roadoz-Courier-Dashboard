@@ -15,11 +15,14 @@ from .views import (
     PickupAddressViewSet,
     RTOAddressViewSet,
     LabelSettingView,
+    NonDeliveryPincodeViewSet,
+    check_pincode,
 )
 
 router = DefaultRouter()
 router.register(r'pickup-address', PickupAddressViewSet, basename='pickup-address')
 router.register(r'rto-address', RTOAddressViewSet, basename='rto-address')
+router.register(r'non-delivery-pincodes', NonDeliveryPincodeViewSet, basename='non-delivery-pincodes')
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="auth_register"),
@@ -36,4 +39,7 @@ urlpatterns = [
     path("settings/kyc/", KYCView.as_view(), name="settings_kyc"),
     path("settings/label/", LabelSettingView.as_view(), name="settings_label"),
     path("settings/", include(router.urls)),
+
+    # Tools
+    path("check-pincode/", check_pincode, name="check_pincode"),
 ]

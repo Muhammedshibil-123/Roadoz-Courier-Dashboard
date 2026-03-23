@@ -158,7 +158,7 @@ class KYCSerializer(serializers.ModelSerializer):
         read_only_fields = ("kyc_status",)
 
 
-from .models import PickupAddress, RTOAddress, LabelSetting
+from .models import PickupAddress, RTOAddress, LabelSetting, NonDeliveryPincode
 
 class PickupAddressSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
@@ -183,3 +183,10 @@ class LabelSettingSerializer(serializers.ModelSerializer):
         model = LabelSetting
         fields = '__all__'
         read_only_fields = ('user',)
+
+
+class NonDeliveryPincodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NonDeliveryPincode
+        fields = '__all__'
+        read_only_fields = ('added_by', 'created_at')

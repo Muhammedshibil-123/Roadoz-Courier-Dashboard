@@ -28,3 +28,23 @@ class WalletTransaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type} of {self.amount}"
+
+
+class CODRemittance(models.Model):
+    REMITTANCE_STATUS = (
+        ('PENDING', 'Pending'),
+        ('TRANSFERRED', 'Transferred'),
+    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cod_remittances')
+    order = models.OneToOneField('orders.Order', on_delete=models.CASCADE, related_name='cod_remittance')
+    cod_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=15, choices=REMITTANCE_STATUS, default='PENDING')
+    delivered_at = models.DateTimeField()
+    transferred_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-delivered_at']
+
+    def __str__(self):
+        return f"COD Remittance #{self.id} - ₹{self.cod_amount} ({self.status})"

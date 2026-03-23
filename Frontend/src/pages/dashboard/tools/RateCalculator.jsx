@@ -1,35 +1,103 @@
 import React, { useState } from 'react';
-import { FaTrash } from 'react-icons/fa';
+import { FaCalculator, FaTruck, FaBox, FaRupeeSign } from 'react-icons/fa';
 
 const RateCalculator = () => {
-  const [activeTab, setActiveTab] = useState('b2c');
-  const [mode, setMode] = useState('cod');
   const [form, setForm] = useState({
-    pickupPincode: '', deliveryPincode: '', declaredValue: '', shipmentType: 'Forward',
-    length: '', breath: '', height: '', weight: '', volWeight: '',
-    noOfBoxes: '', totalWeight: '', totalVolWeight: '', chargeableWeight: '', rov: '',
-    appointmentDelivery: 'No',
+    pickupPincode: '',
+    deliveryPincode: '',
+    weight: '',
+    length: '',
+    breadth: '',
+    height: '',
+    paymentMode: 'prepaid',
+    declaredValue: '',
   });
-  const [boxes, setBoxes] = useState([
-    { id: 1, count: '1', length: '', breath: '', height: '', volWeight: '', physicalWeight: '' },
-  ]);
+  const [result, setResult] = useState(null);
 
   const inputClass = 'bg-transparent border border-[var(--color-border)] rounded-md px-4 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[#d4af26] transition-colors w-full';
 
-  const updateForm = (key, value) => setForm({ ...form, [key]: value });
-
-  const updateBox = (id, key, value) => {
-    setBoxes(boxes.map(b => b.id === id ? { ...b, [key]: value } : b));
+  const updateForm = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setResult(null);
   };
 
-  const addBox = () => {
-    const newId = boxes.length > 0 ? Math.max(...boxes.map(b => b.id)) + 1 : 1;
-    setBoxes([...boxes, { id: newId, count: '1', length: '', breath: '', height: '', volWeight: '', physicalWeight: '' }]);
+  // Calculate volumetric weight = (L x B x H) / 5000
+  const getVolWeight = () => {
+    const l = parseFloat(form.length) || 0;
+    const b = parseFloat(form.breadth) || 0;
+    const h = parseFloat(form.height) || 0;
+    if (l && b && h) return (l * b * h) / 5000;
+    return 0;
   };
 
-  const deleteBox = (id) => {
-    if (boxes.length > 1) setBoxes(boxes.filter(b => b.id !== id));
+  const getChargeableWeight = () => {
+    const actual = parseFloat(form.weight) || 0;
+    const vol = getVolWeight();
+    return Math.max(actual, vol);
   };
+
+  const handleCalculate = () => {
+    if (!form.pickupPincode || !form.deliveryPincode || !form.weight) {
+      return;
+    }
+
+    const chargeableWt = getChargeableWeight();
+
+    // Weight-based pricing slabs
+    // First 0.5 kg: ₹30 base
+    // 0.5 - 5 kg: ₹20 per additional 0.5 kg
+    // 5 - 15 kg: ₹15 per additional 0.5 kg
+    // 15+ kg: ₹12 per additional 0.5 kg
+    let freight = 0;
+    let weightSlab = '';
+    if (chargeableWt <= 0.5) {
+      freight = 30;
+      weightSlab = '0 - 0.5 kg';
+    } else if (chargeableWt <= 5) {
+      freight = 30 + Math.ceil((chargeableWt - 0.5) / 0.5) * 20;
+      weightSlab = '0.5 - 5 kg';
+    } else if (chargeableWt <= 15) {
+      freight = 30 + Math.ceil((5 - 0.5) / 0.5) * 20 + Math.ceil((chargeableWt - 5) / 0.5) * 15;
+      weightSlab = '5 - 15 kg';
+    } else {
+      freight = 30 + Math.ceil((5 - 0.5) / 0.5) * 20 + Math.ceil((15 - 5) / 0.5) * 15 + Math.ceil((chargeableWt - 15) / 0.5) * 12;
+      weightSlab = '15+ kg';
+    }
+
+    // COD charge
+    const codCharge = form.paymentMode === 'cod'
+      ? Math.max(25, (parseFloat(form.declaredValue) || 0) * 0.02)
+      : 0;
+
+    // GST 18%
+    const subtotal = freight + codCharge;
+    const gst = subtotal * 0.18;
+    const total = subtotal + gst;
+
+    setResult({
+      weightSlab,
+      actualWeight: parseFloat(form.weight) || 0,
+      volWeight: getVolWeight(),
+      chargeableWeight: chargeableWt,
+      freight: freight.toFixed(2),
+      codCharge: codCharge.toFixed(2),
+      subtotal: subtotal.toFixed(2),
+      gst: gst.toFixed(2),
+      total: total.toFixed(2),
+    });
+  };
+
+  const handleReset = () => {
+    setForm({
+      pickupPincode: '', deliveryPincode: '', weight: '',
+      length: '', breadth: '', height: '',
+      paymentMode: 'prepaid', declaredValue: '',
+    });
+    setResult(null);
+  };
+
+  const volWeight = getVolWeight();
+  const chargeableWeight = getChargeableWeight();
 
   return (
     <div className="flex-1 p-6 space-y-5">
@@ -43,121 +111,61 @@ const RateCalculator = () => {
         </p>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex rounded-lg overflow-hidden border border-[var(--color-border)]">
-        <button onClick={() => setActiveTab('b2c')}
-          className={`flex-1 py-3 text-sm font-semibold transition-colors ${activeTab === 'b2c' ? 'bg-[#d4af26] text-white' : 'bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
-          B2C Rate Calculator
-        </button>
-        <button onClick={() => setActiveTab('b2c2')}
-          className={`flex-1 py-3 text-sm font-semibold transition-colors ${activeTab === 'b2c2' ? 'bg-[#d4af26] text-white' : 'bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
-          B2C Rate Calculator
-        </button>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Left: Input Form */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Pincodes */}
+          <div className="bg-[var(--color-bg-surface)] rounded-lg p-6 border border-[var(--color-border)] space-y-5">
+            <div className="flex items-center gap-2">
+              <FaTruck className="text-[#d4af26]" />
+              <h2 className="text-base font-semibold text-[var(--color-text-primary)]">Shipping Details</h2>
+            </div>
 
-      {/* B2C Tab Content */}
-      {activeTab === 'b2c' && (
-        <div className="bg-[var(--color-bg-surface)] rounded-lg p-6 border border-[var(--color-border)] space-y-6">
-          {/* Top Fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div>
-              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">pickup Pincode</label>
-              <input type="text" placeholder="pickup Pincode" className={inputClass} value={form.pickupPincode} onChange={(e) => updateForm('pickupPincode', e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Delivery Pincode:</label>
-              <input type="text" placeholder="Delivery Pincode" className={inputClass} value={form.deliveryPincode} onChange={(e) => updateForm('deliveryPincode', e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Declared Value in INR:</label>
-              <input type="text" placeholder="Amount" className={inputClass} value={form.declaredValue} onChange={(e) => updateForm('declaredValue', e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Shipment Type:</label>
-              <select className={inputClass} value={form.shipmentType} onChange={(e) => updateForm('shipmentType', e.target.value)}>
-                <option value="Forward">Forward</option>
-                <option value="Reverse">Reverse</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Mode */}
-          <div>
-            <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-3">Mode:</h3>
-            <div className="flex items-center gap-6">
-              {[{ value: 'cod', label: 'Cash on Delivery' }, { value: 'prepaid', label: 'Prepaid' }, { value: 'topay', label: 'To pay' }].map((opt) => (
-                <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${mode === opt.value ? 'border-[#d4af26]' : 'border-[var(--color-text-secondary)]'}`} onClick={() => setMode(opt.value)}>
-                    {mode === opt.value && <div className="w-2 h-2 rounded-full bg-[#d4af26]" />}
-                  </div>
-                  <span className="text-sm text-[var(--color-text-primary)]">{opt.label}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">
+                  Pickup Pincode <span className="text-red-400">*</span>
                 </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Dimension, Weight, Volumetric Weight */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div>
-              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Dimension:</label>
-              <div className="flex items-center gap-2">
-                <input type="text" placeholder="Length" className={`${inputClass}`} value={form.length} onChange={(e) => updateForm('length', e.target.value)} />
-                <input type="text" placeholder="Breath" className={`${inputClass}`} value={form.breath} onChange={(e) => updateForm('breath', e.target.value)} />
-                <input type="text" placeholder="Height" className={`${inputClass}`} value={form.height} onChange={(e) => updateForm('height', e.target.value)} />
-                <span className="bg-[#d4af26]/20 text-[#d4af26] text-xs font-bold px-3 py-2.5 rounded-md whitespace-nowrap">cm</span>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Weight:</label>
-              <div className="flex items-center gap-2">
-                <input type="text" placeholder="Height" className={`${inputClass}`} value={form.weight} onChange={(e) => updateForm('weight', e.target.value)} />
-                <span className="bg-[#d4af26]/20 text-[#d4af26] text-xs font-bold px-3 py-2.5 rounded-md whitespace-nowrap">kg</span>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Volumetric Weight:</label>
-              <div className="flex items-center gap-2">
-                <input type="text" placeholder="Height" className={`${inputClass}`} value={form.volWeight} onChange={(e) => updateForm('volWeight', e.target.value)} />
-                <span className="bg-[#d4af26]/20 text-[#d4af26] text-xs font-bold px-3 py-2.5 rounded-md whitespace-nowrap">kg</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Submit */}
-          <button className="bg-[#d4af26] hover:bg-[#c39f19] text-white text-sm font-semibold px-8 py-2.5 rounded-md transition-colors">
-            Submit
-          </button>
-        </div>
-      )}
-
-      {/* B2C2 Tab Content */}
-      {activeTab === 'b2c2' && (
-        <div className="space-y-5">
-          <div className="bg-[var(--color-bg-surface)] rounded-lg p-6 border border-[var(--color-border)] space-y-6">
-            {/* Top Fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              <div>
-                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">pickup Pincode</label>
-                <input type="text" placeholder="pickup Pincode" className={inputClass} value={form.pickupPincode} onChange={(e) => updateForm('pickupPincode', e.target.value)} />
+                <input
+                  type="text"
+                  placeholder="e.g. 560001"
+                  className={inputClass}
+                  value={form.pickupPincode}
+                  onChange={(e) => updateForm('pickupPincode', e.target.value.replace(/[^0-9]/g, ''))}
+                  maxLength={10}
+                />
               </div>
               <div>
-                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Delivery Pincode:</label>
-                <input type="text" placeholder="Delivery Pincode" className={inputClass} value={form.deliveryPincode} onChange={(e) => updateForm('deliveryPincode', e.target.value)} />
-              </div>
-              <div>
-                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Declared Value in INR:</label>
-                <input type="text" placeholder="Amount" className={inputClass} value={form.declaredValue} onChange={(e) => updateForm('declaredValue', e.target.value)} />
+                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">
+                  Delivery Pincode <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 400001"
+                  className={inputClass}
+                  value={form.deliveryPincode}
+                  onChange={(e) => updateForm('deliveryPincode', e.target.value.replace(/[^0-9]/g, ''))}
+                  maxLength={10}
+                />
               </div>
             </div>
 
-            {/* Mode */}
+            {/* Payment Mode */}
             <div>
-              <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-3">Mode:</h3>
+              <label className="text-sm text-[var(--color-text-primary)] mb-3 block font-medium">Payment Mode</label>
               <div className="flex items-center gap-6">
-                {[{ value: 'cod', label: 'Cash on Delivery' }, { value: 'prepaid', label: 'Prepaid' }, { value: 'topay', label: 'To pay' }].map((opt) => (
+                {[
+                  { value: 'prepaid', label: 'Prepaid' },
+                  { value: 'cod', label: 'Cash on Delivery' },
+                ].map((opt) => (
                   <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${mode === opt.value ? 'border-[#d4af26]' : 'border-[var(--color-text-secondary)]'}`} onClick={() => setMode(opt.value)}>
-                      {mode === opt.value && <div className="w-2 h-2 rounded-full bg-[#d4af26]" />}
+                    <div
+                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        form.paymentMode === opt.value ? 'border-[#d4af26]' : 'border-[var(--color-text-secondary)]'
+                      }`}
+                      onClick={() => updateForm('paymentMode', opt.value)}
+                    >
+                      {form.paymentMode === opt.value && <div className="w-2 h-2 rounded-full bg-[#d4af26]" />}
                     </div>
                     <span className="text-sm text-[var(--color-text-primary)]">{opt.label}</span>
                   </label>
@@ -165,88 +173,220 @@ const RateCalculator = () => {
               </div>
             </div>
 
-            {/* Weight Fields */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div>
-                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">No Of Boxes *</label>
-                <input type="text" placeholder="Length" className={inputClass} value={form.noOfBoxes} onChange={(e) => updateForm('noOfBoxes', e.target.value)} />
+            {form.paymentMode === 'cod' && (
+              <div className="max-w-xs">
+                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">COD Amount (₹)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 500"
+                  className={inputClass}
+                  value={form.declaredValue}
+                  onChange={(e) => updateForm('declaredValue', e.target.value.replace(/[^0-9.]/g, ''))}
+                />
               </div>
-              <div>
-                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Total Weight</label>
-                <input type="text" placeholder="Total Weight" className={inputClass} value={form.totalWeight} onChange={(e) => updateForm('totalWeight', e.target.value)} />
-              </div>
-              <div>
-                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Total Vol.Weight</label>
-                <input type="text" placeholder="Height" className={inputClass} value={form.totalVolWeight} onChange={(e) => updateForm('totalVolWeight', e.target.value)} />
-              </div>
-              <div>
-                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Chargeable Weight *</label>
-                <input type="text" placeholder="Chargeable Weight" className={`${inputClass} border-[#d4af26]`} value={form.chargeableWeight} onChange={(e) => updateForm('chargeableWeight', e.target.value)} />
-              </div>
-              <div>
-                <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">ROV</label>
-                <input type="text" placeholder="Height" className={inputClass} value={form.rov} onChange={(e) => updateForm('rov', e.target.value)} />
-              </div>
-            </div>
-
-            {/* Appointment Delivery */}
-            <div className="max-w-[200px]">
-              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Appointment Delivery</label>
-              <select className={inputClass} value={form.appointmentDelivery} onChange={(e) => updateForm('appointmentDelivery', e.target.value)}>
-                <option value="No">No</option>
-                <option value="Yes">Yes</option>
-              </select>
-            </div>
-
-            <div><input type="checkbox" className="w-4 h-4 accent-[#d4af26] cursor-pointer" /></div>
+            )}
           </div>
 
-          {/* Dynamic Box Rows */}
-          <div className="bg-[var(--color-bg-surface)] rounded-lg p-6 border border-[var(--color-border)] space-y-4">
-            {boxes.map((box) => (
-              <div key={box.id} className="flex flex-wrap items-end gap-3">
-                <div className="w-16">
-                  <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Count</label>
-                  <input type="text" placeholder="" className={inputClass} value={box.count} onChange={(e) => updateBox(box.id, 'count', e.target.value)} />
-                </div>
-                <div className="flex-1 min-w-[80px]">
-                  <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Length:</label>
-                  <input type="text" placeholder="Length" className={inputClass} value={box.length} onChange={(e) => updateBox(box.id, 'length', e.target.value)} />
-                </div>
-                <div className="flex-1 min-w-[80px]">
-                  <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Breath:</label>
-                  <input type="text" placeholder="Breath" className={inputClass} value={box.breath} onChange={(e) => updateBox(box.id, 'breath', e.target.value)} />
-                </div>
-                <div className="flex-1 min-w-[80px]">
-                  <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Height:</label>
-                  <input type="text" placeholder="Height" className={inputClass} value={box.height} onChange={(e) => updateBox(box.id, 'height', e.target.value)} />
-                </div>
-                <div className="flex-1 min-w-[100px]">
-                  <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Vol. Weight(Kg)*</label>
-                  <input type="text" placeholder="volumatric weight" className={inputClass} value={box.volWeight} onChange={(e) => updateBox(box.id, 'volWeight', e.target.value)} />
-                </div>
-                <div className="flex-1 min-w-[100px]">
-                  <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">Physical Weight(Kg)*</label>
-                  <input type="text" placeholder="Physical Weight" className={inputClass} value={box.physicalWeight} onChange={(e) => updateBox(box.id, 'physicalWeight', e.target.value)} />
-                </div>
-                <button onClick={() => deleteBox(box.id)} className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-md transition-colors">
-                  Delete
-                </button>
-              </div>
-            ))}
+          {/* Package Details */}
+          <div className="bg-[var(--color-bg-surface)] rounded-lg p-6 border border-[var(--color-border)] space-y-5">
+            <div className="flex items-center gap-2">
+              <FaBox className="text-[#d4af26]" />
+              <h2 className="text-base font-semibold text-[var(--color-text-primary)]">Package Details</h2>
+            </div>
 
+            <div>
+              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">
+                Actual Weight (kg) <span className="text-red-400">*</span>
+              </label>
+              <div className="flex items-center gap-2 max-w-xs">
+                <input
+                  type="text"
+                  placeholder="e.g. 1.5"
+                  className={inputClass}
+                  value={form.weight}
+                  onChange={(e) => updateForm('weight', e.target.value.replace(/[^0-9.]/g, ''))}
+                />
+                <span className="bg-[#d4af26]/20 text-[#d4af26] text-xs font-bold px-3 py-2.5 rounded-md whitespace-nowrap">kg</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-[var(--color-text-primary)] mb-2 block font-medium">
+                Dimensions (optional)
+              </label>
+              <div className="flex items-center gap-2 max-w-lg">
+                <input
+                  type="text"
+                  placeholder="Length"
+                  className={inputClass}
+                  value={form.length}
+                  onChange={(e) => updateForm('length', e.target.value.replace(/[^0-9.]/g, ''))}
+                />
+                <span className="text-[var(--color-text-secondary)] text-sm">×</span>
+                <input
+                  type="text"
+                  placeholder="Breadth"
+                  className={inputClass}
+                  value={form.breadth}
+                  onChange={(e) => updateForm('breadth', e.target.value.replace(/[^0-9.]/g, ''))}
+                />
+                <span className="text-[var(--color-text-secondary)] text-sm">×</span>
+                <input
+                  type="text"
+                  placeholder="Height"
+                  className={inputClass}
+                  value={form.height}
+                  onChange={(e) => updateForm('height', e.target.value.replace(/[^0-9.]/g, ''))}
+                />
+                <span className="bg-[#d4af26]/20 text-[#d4af26] text-xs font-bold px-3 py-2.5 rounded-md whitespace-nowrap">cm</span>
+              </div>
+              <p className="text-[10px] text-[var(--color-text-secondary)] mt-1">
+                Volumetric weight = (L × B × H) / 5000
+              </p>
+            </div>
+
+            {/* Live weight summary */}
+            {(form.weight || volWeight > 0) && (
+              <div className="bg-[var(--color-border)]/20 rounded-lg p-4 grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-widest">Actual Wt.</p>
+                  <p className="text-lg font-bold text-[var(--color-text-primary)]">{parseFloat(form.weight) || 0} <span className="text-xs font-normal">kg</span></p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-widest">Vol. Wt.</p>
+                  <p className="text-lg font-bold text-[var(--color-text-primary)]">{volWeight.toFixed(2)} <span className="text-xs font-normal">kg</span></p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-widest">Chargeable</p>
+                  <p className="text-lg font-bold text-[#d4af26]">{chargeableWeight.toFixed(2)} <span className="text-xs font-normal">kg</span></p>
+                </div>
+              </div>
+            )}
+
+            {/* Buttons */}
             <div className="flex gap-3 pt-2">
-              <button onClick={addBox} className="bg-[#d4af26]/20 text-[#d4af26] hover:bg-[#d4af26]/30 text-sm font-semibold px-6 py-2.5 rounded-md transition-colors border border-[#d4af26]/30">
-                Add New
+              <button
+                onClick={handleCalculate}
+                disabled={!form.pickupPincode || !form.deliveryPincode || !form.weight}
+                className="bg-[#d4af26] hover:bg-[#c39f19] text-white text-sm font-semibold px-8 py-2.5 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <FaCalculator className="text-xs" />
+                Calculate Rate
+              </button>
+              <button
+                onClick={handleReset}
+                className="border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] text-sm font-semibold px-6 py-2.5 rounded-md transition-colors"
+              >
+                Reset
               </button>
             </div>
-
-            <button className="bg-[#d4af26] hover:bg-[#c39f19] text-white text-sm font-semibold px-8 py-2.5 rounded-md transition-colors">
-              Submit
-            </button>
           </div>
         </div>
-      )}
+
+        {/* Right: Results */}
+        <div className="space-y-5">
+          {/* Result Card */}
+          {result ? (
+            <div className="bg-[var(--color-bg-surface)] rounded-lg border border-[var(--color-border)] overflow-hidden">
+              {/* Zone Header */}
+              <div className="bg-[#d4af26] px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-white/70 uppercase tracking-widest">Estimated Rate</p>
+                    <p className="text-3xl font-bold text-white mt-1">₹{result.total}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-white/70 uppercase tracking-widest">Weight Slab</p>
+                    <p className="text-lg font-bold text-white">{result.weightSlab}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Breakdown */}
+              <div className="p-5 space-y-3">
+                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Rate Breakdown</h3>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[var(--color-text-secondary)]">Freight Charge</span>
+                    <span className="font-medium text-[var(--color-text-primary)]">₹{result.freight}</span>
+                  </div>
+                  {parseFloat(result.codCharge) > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[var(--color-text-secondary)]">COD Charge</span>
+                      <span className="font-medium text-[var(--color-text-primary)]">₹{result.codCharge}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-sm border-t border-[var(--color-border)] pt-2">
+                    <span className="text-[var(--color-text-secondary)]">Subtotal</span>
+                    <span className="font-medium text-[var(--color-text-primary)]">₹{result.subtotal}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[var(--color-text-secondary)]">GST (18%)</span>
+                    <span className="font-medium text-[var(--color-text-primary)]">₹{result.gst}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-base border-t border-[var(--color-border)] pt-2">
+                    <span className="font-bold text-[var(--color-text-primary)]">Total</span>
+                    <span className="font-bold text-[#d4af26] text-lg">₹{result.total}</span>
+                  </div>
+                </div>
+
+                {/* Weight info */}
+                <div className="bg-[var(--color-border)]/20 rounded-lg p-3 mt-4 space-y-1.5">
+                  <p className="text-xs text-[var(--color-text-secondary)]">
+                    Actual Weight: <span className="font-bold text-[var(--color-text-primary)]">{result.actualWeight} kg</span>
+                  </p>
+                  <p className="text-xs text-[var(--color-text-secondary)]">
+                    Vol. Weight: <span className="font-bold text-[var(--color-text-primary)]">{result.volWeight.toFixed(2)} kg</span>
+                  </p>
+                  <p className="text-xs text-[var(--color-text-secondary)]">
+                    Chargeable: <span className="font-bold text-[#d4af26]">{result.chargeableWeight.toFixed(2)} kg</span>
+                  </p>
+                </div>
+
+                <p className="text-[10px] text-[var(--color-text-secondary)] mt-3">
+                  * These are estimated rates. Actual charges may vary.
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Placeholder Card */
+            <div className="bg-[var(--color-bg-surface)] rounded-lg p-8 border border-[var(--color-border)] text-center space-y-3">
+              <div className="w-16 h-16 rounded-full bg-[#d4af26]/10 flex items-center justify-center mx-auto">
+                <FaRupeeSign className="text-[#d4af26] text-2xl" />
+              </div>
+              <h3 className="text-base font-semibold text-[var(--color-text-primary)]">Rate Estimate</h3>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Fill in the shipping and package details, then click "Calculate Rate" to see the estimated cost.
+              </p>
+            </div>
+          )}
+
+          {/* Weight-Based Rate Card */}
+          <div className="bg-[var(--color-bg-surface)] rounded-lg p-5 border border-[var(--color-border)] space-y-3">
+            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Weight-Based Pricing</h3>
+            <div className="space-y-0">
+              {[
+                { slab: 'First 0.5 kg', rate: '₹30', desc: 'Base rate' },
+                { slab: '0.5 – 5 kg', rate: '₹20 / 0.5 kg', desc: 'Standard' },
+                { slab: '5 – 15 kg', rate: '₹15 / 0.5 kg', desc: 'Bulk' },
+                { slab: '15+ kg', rate: '₹12 / 0.5 kg', desc: 'Heavy' },
+              ].map((s, i) => (
+                <div key={s.slab} className={`flex items-center justify-between py-2.5 ${i < 3 ? 'border-b border-[var(--color-border)]' : ''}`}>
+                  <div>
+                    <span className="text-sm font-medium text-[var(--color-text-primary)]">{s.slab}</span>
+                    <span className="text-[10px] text-[var(--color-text-secondary)] ml-2">({s.desc})</span>
+                  </div>
+                  <span className="text-sm font-bold text-[#d4af26]">{s.rate}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-[var(--color-text-secondary)] pt-1">
+              + COD: 2% of value (min ₹25) &middot; GST: 18%
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

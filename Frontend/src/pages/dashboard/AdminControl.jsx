@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FaPlus, FaTrash, FaMapMarkerAlt, FaExchangeAlt, FaMoneyBillWave } from 'react-icons/fa';
 import api from '../../lib/axios';
 
 const STATUS_OPTIONS = [
@@ -35,8 +36,24 @@ const AdminControl = () => {
   const [updating, setUpdating] = useState(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
 
+  // Non-delivery pincodes state
+  const [blockedPincodes, setBlockedPincodes] = useState([]);
+  const [pincodeLoading, setPincodeLoading] = useState(true);
+  const [newPincode, setNewPincode] = useState('');
+  const [newReason, setNewReason] = useState('');
+  const [pincodeError, setPincodeError] = useState('');
+  const [pincodeSuccess, setPincodeSuccess] = useState('');
+
+  // Remittance state
+  const [remittances, setRemittances] = useState([]);
+  const [remLoading, setRemLoading] = useState(true);
+  const [transferring, setTransferring] = useState(null);
+  const [bulkTransferring, setBulkTransferring] = useState(false);
+
   useEffect(() => {
     fetchOrders();
+    fetchBlockedPincodes();
+    fetchRemittances();
   }, []);
 
   const fetchOrders = async () => {
@@ -53,15 +70,106 @@ const AdminControl = () => {
     try {
       const res = await api.patch(`/api/orders/${orderId}/status/`, { status: newStatus });
       setOrders(orders.map(o => o.id === orderId ? res.data : o));
+      if (newStatus === 'DELIVERED') {
+         fetchRemittances(); // refresh remittances if needed
+      }
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to update status');
     }
     setUpdating(null);
   };
 
+  // --- Remittances ---
+  const fetchRemittances = async () => {
+    setRemLoading(true);
+    try {
+      const res = await api.get('/api/finance/remittances/?status=PENDING', { skipLoading: true });
+      setRemittances(res.data);
+    } catch {
+      setRemittances([]);
+    } finally {
+      setRemLoading(false);
+    }
+  };
+
+  const handleTransfer = async (id) => {
+    setTransferring(id);
+    try {
+      await api.post(`/api/finance/remittances/${id}/transfer/`);
+      fetchRemittances();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Transfer failed');
+    } finally {
+      setTransferring(null);
+    }
+  };
+
+  const handleBulkTransfer = async () => {
+    if (!confirm('Transfer ALL pending COD amounts?')) return;
+    setBulkTransferring(true);
+    try {
+      await api.post('/api/finance/remittances/transfer-all/');
+      fetchRemittances();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Bulk transfer failed');
+    } finally {
+      setBulkTransferring(false);
+    }
+  };
+
+  // --- Non-delivery pincodes ---
+  const fetchBlockedPincodes = async () => {
+    setPincodeLoading(true);
+    try {
+      const res = await api.get('/api/auth/settings/non-delivery-pincodes/', { skipLoading: true });
+      setBlockedPincodes(Array.isArray(res.data) ? res.data : res.data.results || []);
+    } catch {
+      setBlockedPincodes([]);
+    } finally {
+      setPincodeLoading(false);
+    }
+  };
+
+  const addPincode = async () => {
+    if (!newPincode || newPincode.length < 4) {
+      setPincodeError('Enter a valid pincode.');
+      return;
+    }
+    setPincodeError('');
+    try {
+      await api.post('/api/auth/settings/non-delivery-pincodes/', {
+        pincode: newPincode,
+        reason: newReason || 'Not serviceable',
+      });
+      setNewPincode('');
+      setNewReason('');
+      setPincodeSuccess('Pincode added!');
+      fetchBlockedPincodes();
+      setTimeout(() => setPincodeSuccess(''), 2000);
+    } catch (err) {
+      const data = err.response?.data;
+      if (data?.pincode) {
+        setPincodeError(Array.isArray(data.pincode) ? data.pincode[0] : data.pincode);
+      } else {
+        setPincodeError('Failed to add pincode.');
+      }
+    }
+  };
+
+  const removePincode = async (id) => {
+    try {
+      await api.delete(`/api/auth/settings/non-delivery-pincodes/${id}/`);
+      fetchBlockedPincodes();
+    } catch {
+      // Silent
+    }
+  };
+
   const filteredOrders = statusFilter === 'ALL'
     ? orders
     : orders.filter(o => o.status === statusFilter);
+
+  const inputClass = 'bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[#d4af26] transition-colors';
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] p-6 space-y-5">
@@ -81,6 +189,150 @@ const AdminControl = () => {
         </p>
       </div>
 
+      {/* ============= NON-DELIVERY PINCODES SECTION ============= */}
+      <div className="bg-[var(--color-bg-surface)] rounded-lg p-5 border border-[var(--color-border)] space-y-4">
+        <div className="flex items-center gap-2">
+          <FaMapMarkerAlt className="text-red-400" />
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Non-Delivery Pincodes</h2>
+        </div>
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          Add pincodes where delivery is not available. Users checking these in the Serviceable Pincode tool will be told delivery isn't possible.
+        </p>
+
+        {/* Add pincode form */}
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="text-xs text-[var(--color-text-secondary)] mb-1 block">Pincode *</label>
+            <input
+              type="text"
+              placeholder="e.g. 110001"
+              className={`${inputClass} w-36`}
+              value={newPincode}
+              onChange={(e) => { setNewPincode(e.target.value.replace(/[^0-9]/g, '')); setPincodeError(''); }}
+              maxLength={10}
+            />
+          </div>
+          <div className="flex-1 min-w-[150px]">
+            <label className="text-xs text-[var(--color-text-secondary)] mb-1 block">Reason (optional)</label>
+            <input
+              type="text"
+              placeholder="e.g. Remote area, No delivery partner"
+              className={`${inputClass} w-full`}
+              value={newReason}
+              onChange={(e) => setNewReason(e.target.value)}
+            />
+          </div>
+          <button
+            onClick={addPincode}
+            className="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors flex items-center gap-1.5"
+          >
+            <FaPlus className="text-xs" />
+            Block Pincode
+          </button>
+        </div>
+
+        {pincodeError && <p className="text-xs text-red-400">{pincodeError}</p>}
+        {pincodeSuccess && <p className="text-xs text-green-400">{pincodeSuccess}</p>}
+
+        {/* Blocked pincodes list */}
+        {pincodeLoading ? (
+          <p className="text-sm text-[var(--color-text-secondary)]">Loading...</p>
+        ) : blockedPincodes.length === 0 ? (
+          <p className="text-sm text-[var(--color-text-secondary)] py-4">No pincodes blocked yet. All pincodes are serviceable.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 pt-2">
+            {blockedPincodes.map((bp) => (
+              <div
+                key={bp.id}
+                className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 group"
+                title={bp.reason || 'No reason'}
+              >
+                <span className="text-sm font-bold text-red-400">{bp.pincode}</span>
+                {bp.reason && <span className="text-[10px] text-[var(--color-text-secondary)] max-w-[120px] truncate">({bp.reason})</span>}
+                <button
+                  onClick={() => removePincode(bp.id)}
+                  className="text-red-400/50 hover:text-red-400 transition-colors ml-1"
+                  title="Remove"
+                >
+                  <FaTrash className="text-[10px]" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ============= COD REMITTANCE SECTION ============= */}
+      <div className="bg-[var(--color-bg-surface)] rounded-lg p-5 border border-[var(--color-border)] space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FaMoneyBillWave className="text-[#d4af26]" />
+            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Pending COD Remittances</h2>
+          </div>
+          {remittances.length > 0 && (
+            <button
+              onClick={handleBulkTransfer}
+              disabled={bulkTransferring}
+              className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50 flex items-center gap-1"
+            >
+              {bulkTransferring ? 'Processing...' : 'Approve All Pending'}
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          Approve and transfer pending COD amounts from delivered orders to the user's wallet.
+        </p>
+
+        {remLoading ? (
+          <p className="text-sm text-[var(--color-text-secondary)]">Loading pending remittances...</p>
+        ) : remittances.length === 0 ? (
+          <p className="text-sm text-[var(--color-text-secondary)] py-2">No pending remittances to process.</p>
+        ) : (
+          <div className="overflow-x-auto border border-[var(--color-border)] rounded-md">
+            <table className="w-full min-w-[600px]">
+              <thead className="bg-black/20 dark:bg-white/5">
+                <tr>
+                  <th className="p-2 text-left text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Tracking ID</th>
+                  <th className="p-2 text-left text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Customer</th>
+                  <th className="p-2 text-left text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Amount</th>
+                  <th className="p-2 text-center text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {remittances.map((r) => (
+                  <tr key={r.id} className="border-t border-[var(--color-border)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-2">
+                      <span className="text-xs font-bold text-[#d4af26]">{r.tracking_id}</span>
+                    </td>
+                    <td className="p-2">
+                      <span className="text-xs text-[var(--color-text-primary)] block">{r.customer_name}</span>
+                    </td>
+                    <td className="p-2">
+                      <span className="text-xs font-bold text-[var(--color-text-primary)]">₹{parseFloat(r.cod_amount).toLocaleString()}</span>
+                    </td>
+                    <td className="p-2 text-center">
+                      <button
+                        onClick={() => handleTransfer(r.id)}
+                        disabled={transferring === r.id}
+                        className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-md transition-colors disabled:opacity-50 inline-flex items-center gap-1"
+                      >
+                        {transferring === r.id ? '...' : (
+                          <>
+                            <FaExchangeAlt className="text-[9px]" />
+                            Approve
+                          </>
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ============= ORDER STATUS SECTION ============= */}
       {/* Filter */}
       <div className="bg-[var(--color-bg-surface)] rounded-lg p-4 border border-[var(--color-border)] flex flex-wrap items-center gap-3">
         <span className="text-sm font-semibold text-[var(--color-text-primary)]">Filter by status:</span>

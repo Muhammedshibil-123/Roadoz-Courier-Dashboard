@@ -192,6 +192,17 @@ def update_order_status(request, order_id):
                     description=desc,
                 )
 
+        # Auto-create a PENDING COD remittance record
+        from finance.models import CODRemittance
+        if order.cod_amount > 0 and not CODRemittance.objects.filter(order=order).exists():
+            CODRemittance.objects.create(
+                user=request.user,
+                order=order,
+                cod_amount=order.cod_amount,
+                status='PENDING',
+                delivered_at=timezone.now(),
+            )
+
     # 4. Return/Cancelled Orders (DEBIT/Reverse Product Revenue)
     if new_status in ["RETURN", "CANCELLED", "RTO_DELIVERED"] and order.status not in ["RETURN", "CANCELLED", "RTO_DELIVERED"]:
         desc = f"Product Revenue Reversal for Return Order {order.tracking_id}"

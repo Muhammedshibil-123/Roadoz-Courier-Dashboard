@@ -25,7 +25,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768);
   const [expandedMenus, setExpandedMenus] = useState(() => {
     const initExpanded = {};
     if (window.location.pathname.startsWith("/orders")) {
@@ -137,11 +137,16 @@ const Sidebar = () => {
         {/* Sidebar */}
         <aside
           className={`
-                        bg-[var(--color-bg-surface)] border-r border-[var(--color-border)]
-                        flex flex-col justify-between overflow-hidden
-                        transition-all duration-300 ease-in-out
-                        ${sidebarOpen ? "w-[250px]" : "w-[78px]"}
-                    `}
+            bg-[var(--color-bg-surface)] border-r border-[var(--color-border)]
+            flex flex-col justify-between overflow-hidden
+            transition-all duration-300 ease-in-out
+            absolute md:relative z-50 h-full md:h-auto
+            ${
+              sidebarOpen
+                ? "w-[250px] translate-x-0"
+                : "w-0 md:w-[78px] -translate-x-full md:translate-x-0 border-r-0 md:border-r"
+            }
+          `}
         >
           <div className="overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <nav className="py-1">
@@ -291,6 +296,14 @@ const Sidebar = () => {
             </button>
           </div>
         </aside>
+
+        {/* Mobile Backdrop */}
+        {sidebarOpen && (
+          <div
+            className="md:hidden absolute inset-0 z-40 bg-black/50 backdrop-blur-[2px]"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
         {/* Main content */}
         <main className="flex-1 min-w-0 overflow-y-auto bg-[var(--color-bg-main)] transition-colors duration-300">

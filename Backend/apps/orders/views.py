@@ -287,11 +287,11 @@ def consignees_list(request):
             state = address_parts[-1] if len(address_parts) > 0 else "Unknown"
             city = address_parts[-2] if len(address_parts) > 1 else "Unknown"
             short_address = ", ".join(address_parts[:-2]) if len(address_parts) > 2 else c["destination_address"]
-            
+            status=True
             results.append({
-                "id": f"#CON-{hash(phone) % 10000 + 10000}", # consistent display ID
+                "id": c["id__min"],
                 "name": c["customer_name"],
-                "phone": phone,
+                "phone": c["customer_phone"],
                 "email": "N/A", # We don't collect email in the current Order model
                 "address": short_address,
                 "city": city,
@@ -301,3 +301,111 @@ def consignees_list(request):
             })
             
     return Response(results)
+
+
+# ── Exporting ──────────────────────────────────────────────────────────────
+
+import csv
+from django.http import HttpResponse
+from datetime import datetime
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def export_orders_csv(request):
+    """
+    GET /api/orders/export/
+    Export orders as CSV or JSON. Expects:
+    - fields: comma array of requested field names
+    - start_date / end_date (optional, format: YYYY-MM-DD)
+    - format: 'csv' or 'json' (default: csv)
+    """
+    fields_param = request.query_params.get('fields', '')
+    requested_fields = [f.strip() for f in fields_param.split(',')] if fields_param else []
+    
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+    export_format = request.query_params.get('export_format', 'csv').lower()
+
+    qs = Order.objects.filter(user=request.user)
+
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            if timezone.is_aware(timezone.now()):
+                start_dt = timezone.make_aware(start_dt)
+            qs = qs.filter(created_at__gte=start_dt)
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+            if timezone.is_aware(timezone.now()):
+                end_dt = timezone.make_aware(end_dt)
+            qs = qs.filter(created_at__lte=end_dt + timedelta(days=1))
+        except ValueError:
+            pass
+
+    # Dictionary mapping requested field label to model attribute / logic
+    def safe_float(val):
+        try:
+            if val is None or val == '': return 0.0
+            return float(val)
+        except (ValueError, TypeError):
+            return 0.0
+
+    FIELD_MAP = {
+        'Tracking ID': lambda o: str(o.tracking_id or ''),
+        'Buyer Name': lambda o: str(o.customer_name or ''),
+        'Buyer Mobile': lambda o: str(o.customer_phone or ''),
+        'Address': lambda o: str(o.destination_address or ''),
+        'PinCode': lambda o: str(o.destination_pincode or ''),
+        'Order Status': lambda o: str(o.get_status_display()) if o.status else '',
+        'Order Date': lambda o: o.created_at.strftime('%Y-%m-%d %H:%M') if o.created_at else '',
+        'Weight (kg)': lambda o: safe_float(o.weight),
+        'Type': lambda o: str(o.get_order_type_display()) if o.order_type else '',
+        'COD Amount': lambda o: safe_float(o.cod_amount) if o.order_type == 'COD' else 0.0,
+        'Product Value': lambda o: safe_float(o.product_amount),
+        'Last Updated': lambda o: o.status_changed_at.strftime('%Y-%m-%d %H:%M') if o.status_changed_at else '',
+    }
+
+    if not requested_fields or requested_fields == ['']:
+        header = list(FIELD_MAP.keys())
+    else:
+        # filter to allowed fields
+        header = [f for f in requested_fields if f in FIELD_MAP]
+
+    if not header:
+        header = ['Tracking ID', 'Order Status', 'Order Date']
+
+    if export_format == 'json':
+        data = []
+        try:
+            for order in qs.iterator():
+                row = {}
+                for col in header:
+                    row[col] = FIELD_MAP[col](order)
+                data.append(row)
+            return Response({'header': header, 'data': data})
+        except Exception as e:
+            return Response({'detail': f'Error generating JSON: {str(e)}'}, status=500)
+
+    # Default: CSV
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="roadoz_orders_report.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(header)
+
+    try:
+        for order in qs.iterator():
+            row = []
+            for col in header:
+                try:
+                    row.append(FIELD_MAP[col](order))
+                except Exception as cell_err:
+                    row.append(f"ERR: {str(cell_err)}")
+            writer.writerow(row)
+    except Exception as e:
+        writer.writerow(['ERROR_GENERATING', str(e)])
+        
+    return response

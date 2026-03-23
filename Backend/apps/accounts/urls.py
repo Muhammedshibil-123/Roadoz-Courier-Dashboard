@@ -17,6 +17,13 @@ from .views import (
     LabelSettingView,
     NonDeliveryPincodeViewSet,
     check_pincode,
+    ticket_list_create,
+    ticket_detail,
+    ticket_reply,
+    ticket_close,
+    ticket_summary,
+    all_open_tickets,
+    admin_ticket_reply,
 )
 
 router = DefaultRouter()
@@ -42,4 +49,13 @@ urlpatterns = [
 
     # Tools
     path("check-pincode/", check_pincode, name="check_pincode"),
+
+    # Support Tickets
+    path("tickets/", ticket_list_create, name="ticket_list_create"),
+    path("tickets/summary/", ticket_summary, name="ticket_summary"),
+    path("tickets/open-all/", all_open_tickets, name="all_open_tickets"),
+    path("tickets/<str:ticket_id>/", ticket_detail, name="ticket_detail"),
+    path("tickets/<str:ticket_id>/reply/", ticket_reply, name="ticket_reply"),
+    path("tickets/<str:ticket_id>/close/", ticket_close, name="ticket_close"),
+    path("tickets/<str:ticket_id>/admin-reply/", admin_ticket_reply, name="admin_ticket_reply"),
 ]

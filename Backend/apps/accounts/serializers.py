@@ -190,3 +190,34 @@ class NonDeliveryPincodeSerializer(serializers.ModelSerializer):
         model = NonDeliveryPincode
         fields = '__all__'
         read_only_fields = ('added_by', 'created_at')
+
+
+from .models import SupportTicket, TicketReply
+
+class TicketReplySerializer(serializers.ModelSerializer):
+    sender = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TicketReply
+        fields = ['id', 'message', 'is_admin', 'sender', 'created_at']
+
+    def get_sender(self, obj):
+        return 'Roadoz Support' if obj.is_admin else obj.user.username
+
+
+class SupportTicketSerializer(serializers.ModelSerializer):
+    replies = TicketReplySerializer(many=True, read_only=True)
+    reply_count = serializers.SerializerMethodField()
+    order_tracking_id = serializers.CharField(source='order.tracking_id', read_only=True, default=None)
+
+    class Meta:
+        model = SupportTicket
+        fields = [
+            'id', 'ticket_id', 'subject', 'message', 'category', 'priority',
+            'status', 'order_tracking_id', 'reply_count', 'replies',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ('ticket_id', 'status', 'created_at', 'updated_at')
+
+    def get_reply_count(self, obj):
+        return obj.replies.count()

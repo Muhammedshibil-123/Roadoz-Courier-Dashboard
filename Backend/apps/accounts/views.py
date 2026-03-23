@@ -519,3 +519,173 @@ def check_pincode(request):
             'serviceable': True,
             'message': 'This pincode is serviceable. We can deliver here!',
         })
+
+
+# ── Support Ticket Views ────────────────────────────────────────────────────
+
+from rest_framework.decorators import api_view, permission_classes
+from .models import SupportTicket, TicketReply
+from .serializers import SupportTicketSerializer, TicketReplySerializer
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def ticket_list_create(request):
+    """
+    GET: List all tickets for the current user (with optional status filter)
+    POST: Create a new support ticket
+    """
+    if request.method == 'GET':
+        qs = SupportTicket.objects.filter(user=request.user).prefetch_related('replies')
+        status_filter = request.query_params.get('status')
+        if status_filter and status_filter in ('OPEN', 'ANSWERED', 'CLOSED'):
+            qs = qs.filter(status=status_filter)
+        serializer = SupportTicketSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        subject = request.data.get('subject')
+        message = request.data.get('message')
+        category = request.data.get('category', 'OTHER')
+        priority = request.data.get('priority', 'MEDIUM')
+        order_id = request.data.get('order_id')
+
+        if not subject or not message:
+            return Response({'error': 'Subject and message are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ticket = SupportTicket(
+            user=request.user,
+            subject=subject,
+            message=message,
+            category=category,
+            priority=priority,
+        )
+        if order_id:
+            from orders.models import Order
+            try:
+                order = Order.objects.get(id=order_id, user=request.user)
+                ticket.order = order
+            except Order.DoesNotExist:
+                pass
+
+        ticket.save()
+        serializer = SupportTicketSerializer(ticket)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ticket_detail(request, ticket_id):
+    """GET: Get a single ticket with all replies."""
+    try:
+        ticket = SupportTicket.objects.prefetch_related('replies').get(
+            ticket_id=ticket_id, user=request.user
+        )
+    except SupportTicket.DoesNotExist:
+        return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = SupportTicketSerializer(ticket)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ticket_reply(request, ticket_id):
+    """POST: Add a reply to a ticket (seller side)."""
+    try:
+        ticket = SupportTicket.objects.get(ticket_id=ticket_id, user=request.user)
+    except SupportTicket.DoesNotExist:
+        return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    message = request.data.get('message')
+    if not message:
+        return Response({'error': 'Message is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    TicketReply.objects.create(
+        ticket=ticket,
+        user=request.user,
+        message=message,
+        is_admin=False,
+    )
+    # Reopen ticket if it was closed/answered
+    if ticket.status != 'OPEN':
+        ticket.status = 'OPEN'
+        ticket.save(update_fields=['status'])
+
+    serializer = SupportTicketSerializer(ticket)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ticket_close(request, ticket_id):
+    """POST: Close a ticket."""
+    try:
+        ticket = SupportTicket.objects.get(ticket_id=ticket_id, user=request.user)
+    except SupportTicket.DoesNotExist:
+        return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    ticket.status = 'CLOSED'
+    ticket.save(update_fields=['status'])
+    return Response({'detail': 'Ticket closed successfully.'})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ticket_summary(request):
+    """GET: Summary stats for the tickets dashboard."""
+    qs = SupportTicket.objects.filter(user=request.user)
+    return Response({
+        'total': qs.count(),
+        'open': qs.filter(status='OPEN').count(),
+        'answered': qs.filter(status='ANSWERED').count(),
+        'closed': qs.filter(status='CLOSED').count(),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def all_open_tickets(request):
+    """GET: Admin endpoint — get all open tickets across all users."""
+    qs = SupportTicket.objects.filter(status__in=['OPEN']).select_related('user', 'order').prefetch_related('replies')
+    data = []
+    for t in qs:
+        data.append({
+            'id': t.id,
+            'ticket_id': t.ticket_id,
+            'subject': t.subject,
+            'message': t.message,
+            'category': t.category,
+            'priority': t.priority,
+            'status': t.status,
+            'username': t.user.username,
+            'order_tracking_id': t.order.tracking_id if t.order else None,
+            'reply_count': t.replies.count(),
+            'created_at': t.created_at,
+        })
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_ticket_reply(request, ticket_id):
+    """POST: Admin replies to a user's ticket."""
+    try:
+        ticket = SupportTicket.objects.get(ticket_id=ticket_id)
+    except SupportTicket.DoesNotExist:
+        return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    message = request.data.get('message')
+    if not message:
+        return Response({'error': 'Message is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    TicketReply.objects.create(
+        ticket=ticket,
+        user=request.user,
+        message=message,
+        is_admin=True,
+    )
+    ticket.status = 'ANSWERED'
+    ticket.save(update_fields=['status'])
+
+    return Response({'detail': 'Reply sent and ticket marked as answered.'})

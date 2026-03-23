@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaTrash, FaMapMarkerAlt, FaExchangeAlt, FaMoneyBillWave } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaMapMarkerAlt, FaExchangeAlt, FaMoneyBillWave, FaTicketAlt, FaPaperPlane } from 'react-icons/fa';
 import api from '../../lib/axios';
 
 const STATUS_OPTIONS = [
@@ -50,10 +50,18 @@ const AdminControl = () => {
   const [transferring, setTransferring] = useState(null);
   const [bulkTransferring, setBulkTransferring] = useState(false);
 
+  // Tickets state
+  const [openTickets, setOpenTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [replyTicketId, setReplyTicketId] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [replying, setReplying] = useState(false);
+
   useEffect(() => {
     fetchOrders();
     fetchBlockedPincodes();
     fetchRemittances();
+    fetchOpenTickets();
   }, []);
 
   const fetchOrders = async () => {
@@ -114,6 +122,34 @@ const AdminControl = () => {
       alert(err.response?.data?.detail || 'Bulk transfer failed');
     } finally {
       setBulkTransferring(false);
+    }
+  };
+
+  // --- Tickets ---
+  const fetchOpenTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const res = await api.get('/api/auth/tickets/open-all/', { skipLoading: true });
+      setOpenTickets(res.data);
+    } catch {
+      setOpenTickets([]);
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
+  const handleAdminReply = async (ticketId) => {
+    if (!replyText.trim()) return;
+    setReplying(true);
+    try {
+      await api.post(`/api/auth/tickets/${ticketId}/admin-reply/`, { message: replyText });
+      setReplyText('');
+      setReplyTicketId(null);
+      fetchOpenTickets();
+    } catch {
+      alert('Failed to send reply');
+    } finally {
+      setReplying(false);
     }
   };
 
@@ -432,6 +468,86 @@ const AdminControl = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ─── Open Support Tickets ──────────────────────────────── */}
+      <div className="bg-white dark:bg-[var(--color-bg-surface)] rounded-lg shadow p-6 mt-6 border border-[var(--color-border)]">
+        <div className="flex items-center gap-2 mb-4">
+          <FaTicketAlt className="text-orange-400" />
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Open Support Tickets</h3>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">View and reply to open tickets from sellers. Your reply will mark the ticket as "Answered".</p>
+
+        {ticketsLoading ? (
+          <p className="text-sm text-gray-400 py-4">Loading tickets...</p>
+        ) : openTickets.length === 0 ? (
+          <p className="text-sm text-green-500 py-4">All caught up! No open tickets.</p>
+        ) : (
+          <div className="space-y-3">
+            {openTickets.map((t) => (
+              <div key={t.id} className="border border-[var(--color-border)] rounded-lg p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-bold text-[#d4af26]">{t.ticket_id}</span>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                        t.priority === 'URGENT' ? 'bg-red-500/20 text-red-400' :
+                        t.priority === 'HIGH' ? 'bg-orange-500/20 text-orange-400' :
+                        t.priority === 'MEDIUM' ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-500/20 text-gray-400'
+                      }`}>{t.priority}</span>
+                      <span className="text-[9px] text-gray-500 dark:text-gray-400">{t.category?.replace('_', ' ')}</span>
+                      <span className="text-[9px] text-gray-500 dark:text-gray-400">by {t.username}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t.subject}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-line">{t.message}</p>
+                    {t.order_tracking_id && (
+                      <p className="text-[10px] text-[#d4af26] mt-1">Order: {t.order_tracking_id}</p>
+                    )}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[10px] text-gray-500">Replies: {t.reply_count}</p>
+                  </div>
+                </div>
+
+                {/* Reply area */}
+                {replyTicketId === t.ticket_id ? (
+                  <div className="mt-3 flex gap-2 items-end">
+                    <textarea
+                      className="flex-1 bg-white dark:bg-[#1a2332] border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-xs focus:outline-none focus:border-[#d4af26] resize-none min-h-[60px]"
+                      placeholder="Type your admin reply..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      rows={2}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => handleAdminReply(t.ticket_id)}
+                        disabled={replying || !replyText.trim()}
+                        className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-md text-xs disabled:opacity-50"
+                        title="Send Reply"
+                      >
+                        <FaPaperPlane />
+                      </button>
+                      <button
+                        onClick={() => { setReplyTicketId(null); setReplyText(''); }}
+                        className="p-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-md text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setReplyTicketId(t.ticket_id)}
+                    className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-green-500 hover:text-green-400 transition-colors"
+                  >
+                    <FaPaperPlane className="text-[10px]" /> Reply as Admin
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

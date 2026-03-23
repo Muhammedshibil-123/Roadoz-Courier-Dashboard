@@ -290,14 +290,18 @@ function OtpStep({ email, onBack }) {
             username: data.username,
             email: data.email,
           },
-        })
+        }),
       );
 
       navigate("/dashboard", { replace: true });
     } catch (err) {
       const data = err.response?.data;
       const first = data ? Object.values(data)[0] : null;
-      setError(Array.isArray(first) ? first[0] : first || "Invalid OTP. Please try again.");
+      setError(
+        Array.isArray(first)
+          ? first[0]
+          : first || "Invalid OTP. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -306,7 +310,9 @@ function OtpStep({ email, onBack }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
       <div className="text-center">
-        <p className="text-xs sm:text-sm text-[#E3BE3A]/90">Enter the 6-digit code sent to</p>
+        <p className="text-xs sm:text-sm text-[#E3BE3A]/90">
+          Enter the 6-digit code sent to
+        </p>
         <p className="mt-1 text-sm sm:text-base font-medium text-[#E3BE3A] break-all">
           {email}
         </p>

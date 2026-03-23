@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import Order
 
 
@@ -21,7 +22,14 @@ class OrderSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "tracking_id", "status", "status_changed_at", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "tracking_id",
+            "status",
+            "status_changed_at",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class OrderStatusSerializer(serializers.Serializer):

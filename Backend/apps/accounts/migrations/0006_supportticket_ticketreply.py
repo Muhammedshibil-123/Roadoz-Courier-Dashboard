@@ -8,42 +8,128 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0005_nondeliverypincode'),
-        ('orders', '0003_order_product_amount'),
+        ("accounts", "0005_nondeliverypincode"),
+        ("orders", "0003_order_product_amount"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='SupportTicket',
+            name="SupportTicket",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ticket_id', models.CharField(db_index=True, editable=False, max_length=20, unique=True)),
-                ('subject', models.CharField(max_length=200)),
-                ('message', models.TextField()),
-                ('category', models.CharField(choices=[('DELIVERY_ISSUE', 'Delivery Issue'), ('WEIGHT_DISPUTE', 'Weight Dispute'), ('STUCK_IN_TRANSIT', 'Stuck in Transit'), ('PAYMENT_ISSUE', 'Payment Issue'), ('OTHER', 'Other')], default='OTHER', max_length=20)),
-                ('priority', models.CharField(choices=[('LOW', 'Low'), ('MEDIUM', 'Medium'), ('HIGH', 'High'), ('URGENT', 'Urgent')], default='MEDIUM', max_length=10)),
-                ('status', models.CharField(choices=[('OPEN', 'Open'), ('ANSWERED', 'Answered'), ('CLOSED', 'Closed')], default='OPEN', max_length=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('order', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tickets', to='orders.order')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='tickets', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "ticket_id",
+                    models.CharField(
+                        db_index=True, editable=False, max_length=20, unique=True
+                    ),
+                ),
+                ("subject", models.CharField(max_length=200)),
+                ("message", models.TextField()),
+                (
+                    "category",
+                    models.CharField(
+                        choices=[
+                            ("DELIVERY_ISSUE", "Delivery Issue"),
+                            ("WEIGHT_DISPUTE", "Weight Dispute"),
+                            ("STUCK_IN_TRANSIT", "Stuck in Transit"),
+                            ("PAYMENT_ISSUE", "Payment Issue"),
+                            ("OTHER", "Other"),
+                        ],
+                        default="OTHER",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "priority",
+                    models.CharField(
+                        choices=[
+                            ("LOW", "Low"),
+                            ("MEDIUM", "Medium"),
+                            ("HIGH", "High"),
+                            ("URGENT", "Urgent"),
+                        ],
+                        default="MEDIUM",
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("OPEN", "Open"),
+                            ("ANSWERED", "Answered"),
+                            ("CLOSED", "Closed"),
+                        ],
+                        default="OPEN",
+                        max_length=10,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "order",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="tickets",
+                        to="orders.order",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="tickets",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='TicketReply',
+            name="TicketReply",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('message', models.TextField()),
-                ('is_admin', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('ticket', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='replies', to='accounts.supportticket')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("message", models.TextField()),
+                ("is_admin", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "ticket",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="replies",
+                        to="accounts.supportticket",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['created_at'],
+                "ordering": ["created_at"],
             },
         ),
     ]

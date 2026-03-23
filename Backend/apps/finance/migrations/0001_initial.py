@@ -15,29 +15,80 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Wallet',
+            name="Wallet",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('balance', models.DecimalField(decimal_places=2, default=0.0, max_digits=10)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='wallet', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "balance",
+                    models.DecimalField(decimal_places=2, default=0.0, max_digits=10),
+                ),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="wallet",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='WalletTransaction',
+            name="WalletTransaction",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('transaction_type', models.CharField(choices=[('CREDIT', 'Credit'), ('DEBIT', 'Debit')], max_length=10)),
-                ('opening_balance', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('closing_balance', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('description', models.CharField(max_length=255)),
-                ('razorpay_order_id', models.CharField(blank=True, max_length=100, null=True)),
-                ('razorpay_payment_id', models.CharField(blank=True, max_length=100, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('wallet', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transactions', to='finance.wallet')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "transaction_type",
+                    models.CharField(
+                        choices=[("CREDIT", "Credit"), ("DEBIT", "Debit")],
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "opening_balance",
+                    models.DecimalField(decimal_places=2, max_digits=10),
+                ),
+                (
+                    "closing_balance",
+                    models.DecimalField(decimal_places=2, max_digits=10),
+                ),
+                ("description", models.CharField(max_length=255)),
+                (
+                    "razorpay_order_id",
+                    models.CharField(blank=True, max_length=100, null=True),
+                ),
+                (
+                    "razorpay_payment_id",
+                    models.CharField(blank=True, max_length=100, null=True),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "wallet",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="transactions",
+                        to="finance.wallet",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
     ]

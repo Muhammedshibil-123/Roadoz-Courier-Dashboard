@@ -1,30 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip
-} from 'recharts';
+import React, { useState, useEffect } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import {
   MdOutlineReceipt,
   MdOutlineLocalShipping,
   MdOutlineAssignmentReturn,
-  MdOutlineAccountBalanceWallet
-} from 'react-icons/md';
-import api from '../../lib/axios';
+  MdOutlineAccountBalanceWallet,
+} from "react-icons/md";
+import api from "../../lib/axios";
 
-// ─── Stat Card ───────────────────────────────────────────────
 const StatCard = ({ title, value, subtitle, icon, iconBg }) => (
   <div className="bg-[var(--color-bg-surface)] rounded-lg p-4 flex items-center justify-between border border-[var(--color-border)] transition-colors duration-300">
     <div>
-      <p className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">{title}</p>
-      <p className="text-2xl font-bold text-[var(--color-text-primary)]">{value}</p>
-      <p className="text-[10px] text-[var(--color-text-secondary)] mt-1">{subtitle}</p>
+      <p className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">
+        {title}
+      </p>
+      <p className="text-2xl font-bold text-[var(--color-text-primary)]">
+        {value}
+      </p>
+      <p className="text-[10px] text-[var(--color-text-secondary)] mt-1">
+        {subtitle}
+      </p>
     </div>
-    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
+    <div
+      className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}
+    >
       {icon}
     </div>
   </div>
 );
 
-// ─── Custom Label for Pie Slices ────────────────────────────
 const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, name }) => {
   const RADIAN = Math.PI / 180;
   const radius = outerRadius + 18;
@@ -36,7 +40,7 @@ const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, name }) => {
       x={x}
       y={y}
       fill="var(--color-text-secondary)"
-      textAnchor={x > cx ? 'start' : 'end'}
+      textAnchor={x > cx ? "start" : "end"}
       dominantBaseline="central"
       fontSize={11}
     >
@@ -45,7 +49,6 @@ const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, name }) => {
   );
 };
 
-// ─── Legend Component ──────────────────────────────────────
 const ChartLegend = ({ data }) => (
   <div className="flex flex-col gap-2.5 justify-center">
     {data.map((entry, index) => (
@@ -55,26 +58,30 @@ const ChartLegend = ({ data }) => (
           style={{ backgroundColor: entry.color }}
         />
         <span className="text-[11px] text-[var(--color-text-secondary)] whitespace-nowrap">
-          {entry.name}: {entry.isCurrency ? `₹${entry.value.toFixed(2)}` : entry.value}
+          {entry.name}:{" "}
+          {entry.isCurrency ? `₹${entry.value.toFixed(2)}` : entry.value}
         </span>
       </div>
     ))}
   </div>
 );
 
-// ─── Pie Chart Card (no center value) ───────────────────────
 const PieChartCard = ({ title, data, isCurrency = false }) => (
   <div className="bg-[var(--color-bg-surface)] rounded-xl p-5 border border-[var(--color-border)] transition-colors duration-300">
-    <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-2">{title}</h3>
-    {data.length === 0 || data.every(d => d.value === 0) ? (
-      <div className="h-[240px] flex items-center justify-center text-sm text-[var(--color-text-secondary)]">No data available</div>
+    <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-2">
+      {title}
+    </h3>
+    {data.length === 0 || data.every((d) => d.value === 0) ? (
+      <div className="h-[240px] flex items-center justify-center text-sm text-[var(--color-text-secondary)]">
+        No data available
+      </div>
     ) : (
       <div className="flex items-center">
         <div className="flex-1 h-[240px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data.filter(d => d.value > 0)}
+                data={data.filter((d) => d.value > 0)}
                 cx="50%"
                 cy="50%"
                 outerRadius={85}
@@ -82,44 +89,55 @@ const PieChartCard = ({ title, data, isCurrency = false }) => (
                 stroke="none"
                 paddingAngle={1}
                 label={renderCustomLabel}
-                labelLine={{ stroke: 'var(--color-text-secondary)', strokeWidth: 1 }}
+                labelLine={{
+                  stroke: "var(--color-text-secondary)",
+                  strokeWidth: 1,
+                }}
               >
-                {data.filter(d => d.value > 0).map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
+                {data
+                  .filter((d) => d.value > 0)
+                  .map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'var(--color-bg-surface)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '8px',
-                  color: 'var(--color-text-primary)',
-                  fontSize: '12px',
+                  backgroundColor: "var(--color-bg-surface)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                  color: "var(--color-text-primary)",
+                  fontSize: "12px",
                 }}
-                formatter={(value, name) => [isCurrency ? `₹${value.toFixed(2)}` : value, name]}
+                formatter={(value, name) => [
+                  isCurrency ? `₹${value.toFixed(2)}` : value,
+                  name,
+                ]}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <ChartLegend data={data.filter(d => d.value > 0)} />
+        <ChartLegend data={data.filter((d) => d.value > 0)} />
       </div>
     )}
   </div>
 );
 
-// ─── Donut Chart Card (with center value) ───────────────────
 const DonutChartCard = ({ title, data, centerValue, isCurrency = false }) => (
   <div className="bg-[var(--color-bg-surface)] rounded-xl p-5 border border-[var(--color-border)] transition-colors duration-300">
-    <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-2">{title}</h3>
-    {data.length === 0 || data.every(d => d.value === 0) ? (
-      <div className="h-[240px] flex items-center justify-center text-sm text-[var(--color-text-secondary)]">No data available</div>
+    <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-2">
+      {title}
+    </h3>
+    {data.length === 0 || data.every((d) => d.value === 0) ? (
+      <div className="h-[240px] flex items-center justify-center text-sm text-[var(--color-text-secondary)]">
+        No data available
+      </div>
     ) : (
       <div className="flex items-center">
         <div className="flex-1 h-[240px] relative">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data.filter(d => d.value > 0)}
+                data={data.filter((d) => d.value > 0)}
                 cx="50%"
                 cy="50%"
                 innerRadius={55}
@@ -128,11 +146,12 @@ const DonutChartCard = ({ title, data, centerValue, isCurrency = false }) => (
                 stroke="none"
                 paddingAngle={2}
               >
-                {data.filter(d => d.value > 0).map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
+                {data
+                  .filter((d) => d.value > 0)
+                  .map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
               </Pie>
-              {/* Center Text */}
               <text
                 x="50%"
                 y="50%"
@@ -146,24 +165,26 @@ const DonutChartCard = ({ title, data, centerValue, isCurrency = false }) => (
               </text>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'var(--color-bg-surface)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '8px',
-                  color: 'var(--color-text-primary)',
-                  fontSize: '12px',
+                  backgroundColor: "var(--color-bg-surface)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                  color: "var(--color-text-primary)",
+                  fontSize: "12px",
                 }}
-                formatter={(value, name) => [isCurrency ? `₹${value.toFixed(2)}` : value, name]}
+                formatter={(value, name) => [
+                  isCurrency ? `₹${value.toFixed(2)}` : value,
+                  name,
+                ]}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <ChartLegend data={data.filter(d => d.value > 0)} />
+        <ChartLegend data={data.filter((d) => d.value > 0)} />
       </div>
     )}
   </div>
 );
 
-// ─── Dashboard Page ─────────────────────────────────────────
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -171,10 +192,12 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await api.get('/api/orders/dashboard/', { skipLoading: true });
+        const res = await api.get("/api/orders/dashboard/", {
+          skipLoading: true,
+        });
         setData(res.data);
       } catch (err) {
-        console.log('Dashboard API not available yet:', err);
+        console.log("Dashboard API not available yet:", err);
       } finally {
         setLoading(false);
       }
@@ -196,45 +219,83 @@ const Dashboard = () => {
   const orderType = data?.order_type_breakdown || {};
   const orderStats = data?.order_stats || {};
 
-  // ── Build chart data from real backend data ────────────────
   const walletTransactionData = [
-    { name: 'Credited', value: wallet.total_credited || 0, color: '#67E8F9', isCurrency: true },
-    { name: 'Debited', value: wallet.total_debited || 0, color: '#FCA779', isCurrency: true },
+    {
+      name: "Credited",
+      value: wallet.total_credited || 0,
+      color: "#67E8F9",
+      isCurrency: true,
+    },
+    {
+      name: "Debited",
+      value: wallet.total_debited || 0,
+      color: "#FCA779",
+      isCurrency: true,
+    },
   ];
 
   const codBreakdownData = [
-    { name: 'COD Transferred', value: cod.transferred || 0, color: '#34D399', isCurrency: true },
-    { name: 'COD Pending', value: cod.pending || 0, color: '#F9A8D4', isCurrency: true },
-    { name: 'Cash with Courier', value: cod.cash_with_courier || 0, color: '#FCA779', isCurrency: true },
+    {
+      name: "COD Transferred",
+      value: cod.transferred || 0,
+      color: "#34D399",
+      isCurrency: true,
+    },
+    {
+      name: "COD Pending",
+      value: cod.pending || 0,
+      color: "#F9A8D4",
+      isCurrency: true,
+    },
+    {
+      name: "Cash with Courier",
+      value: cod.cash_with_courier || 0,
+      color: "#FCA779",
+      isCurrency: true,
+    },
   ];
 
   const orderTypeData = [
-    { name: 'COD Orders', value: orderType.cod || 0, color: '#F9A8D4' },
-    { name: 'Prepaid Orders', value: orderType.prepaid || 0, color: '#A78BFA' },
+    { name: "COD Orders", value: orderType.cod || 0, color: "#F9A8D4" },
+    { name: "Prepaid Orders", value: orderType.prepaid || 0, color: "#A78BFA" },
   ];
 
   const orderStatusesData = [
-    { name: 'In Transit', value: orderStats.IN_TRANSIT || 0, color: '#3B82F6' },
-    { name: 'Delivered', value: orderStats.DELIVERED || 0, color: '#34D399' },
-    { name: 'Processing', value: orderStats.PROCESSING || 0, color: '#F9A8D4' },
-    { name: 'Pending', value: orderStats.PICKUP_PENDING || 0, color: '#FCA779' },
-    { name: 'NDR', value: orderStats.NDR || 0, color: '#EF4444' },
-    { name: 'RTO', value: (orderStats.RTO_IN_TRANSIT || 0) + (orderStats.RTO_DELIVERED || 0), color: '#A78BFA' },
+    { name: "In Transit", value: orderStats.IN_TRANSIT || 0, color: "#3B82F6" },
+    { name: "Delivered", value: orderStats.DELIVERED || 0, color: "#34D399" },
+    { name: "Processing", value: orderStats.PROCESSING || 0, color: "#F9A8D4" },
+    {
+      name: "Pending",
+      value: orderStats.PICKUP_PENDING || 0,
+      color: "#FCA779",
+    },
+    { name: "NDR", value: orderStats.NDR || 0, color: "#EF4444" },
+    {
+      name: "RTO",
+      value: (orderStats.RTO_IN_TRANSIT || 0) + (orderStats.RTO_DELIVERED || 0),
+      color: "#A78BFA",
+    },
   ];
 
-  const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const todayStr = new Date().toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
   return (
     <div className="flex-1 p-6 space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Dashboard</h1>
+        <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">
+          Dashboard
+        </h1>
         <p className="text-xs text-[#d4af26] mt-0.5">
-          Dashboard <span className="text-[var(--color-text-secondary)]">&gt;&gt;</span> Dashboard
+          Dashboard{" "}
+          <span className="text-[var(--color-text-secondary)]">&gt;&gt;</span>{" "}
+          Dashboard
         </p>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="TOTAL ORDERS"
@@ -262,11 +323,12 @@ const Dashboard = () => {
           value={`₹${(wallet.balance || 0).toFixed(2)}`}
           subtitle={`${summary.pending || 0} pending orders`}
           iconBg="bg-teal-500"
-          icon={<MdOutlineAccountBalanceWallet className="text-white text-xl" />}
+          icon={
+            <MdOutlineAccountBalanceWallet className="text-white text-xl" />
+          }
         />
       </div>
 
-      {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <PieChartCard
           title="Wallet Transactions"
@@ -281,12 +343,8 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <PieChartCard
-          title="Order Types"
-          data={orderTypeData}
-        />
+        <PieChartCard title="Order Types" data={orderTypeData} />
         <DonutChartCard
           title="Order Statuses"
           data={orderStatusesData}
@@ -294,36 +352,62 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Recent Wallet Transactions */}
       {wallet.recent_transactions?.length > 0 && (
         <div className="bg-[var(--color-bg-surface)] rounded-xl p-5 border border-[var(--color-border)]">
-          <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-4">Recent Wallet Transactions</h3>
+          <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-4">
+            Recent Wallet Transactions
+          </h3>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--color-border)]">
-                  <th className="text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">Description</th>
-                  <th className="text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">Type</th>
-                  <th className="text-right text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">Amount</th>
-                  <th className="text-right text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">Balance</th>
-                  <th className="text-right text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">Date</th>
+                  <th className="text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">
+                    Description
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">
+                    Type
+                  </th>
+                  <th className="text-right text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">
+                    Amount
+                  </th>
+                  <th className="text-right text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">
+                    Balance
+                  </th>
+                  <th className="text-right text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider p-3">
+                    Date
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {wallet.recent_transactions.map((txn, i) => (
-                  <tr key={i} className="border-b border-[var(--color-border)] last:border-0">
-                    <td className="p-3 text-sm text-[var(--color-text-primary)]">{txn.description}</td>
+                  <tr
+                    key={i}
+                    className="border-b border-[var(--color-border)] last:border-0"
+                  >
+                    <td className="p-3 text-sm text-[var(--color-text-primary)]">
+                      {txn.description}
+                    </td>
                     <td className="p-3">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${txn.type === 'CREDIT' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                      <span
+                        className={`text-xs font-bold px-2 py-0.5 rounded ${txn.type === "CREDIT" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}
+                      >
                         {txn.type}
                       </span>
                     </td>
-                    <td className={`p-3 text-sm font-semibold text-right ${txn.type === 'CREDIT' ? 'text-green-400' : 'text-red-400'}`}>
-                      {txn.type === 'CREDIT' ? '+' : '-'}₹{txn.amount.toFixed(2)}
+                    <td
+                      className={`p-3 text-sm font-semibold text-right ${txn.type === "CREDIT" ? "text-green-400" : "text-red-400"}`}
+                    >
+                      {txn.type === "CREDIT" ? "+" : "-"}₹
+                      {txn.amount.toFixed(2)}
                     </td>
-                    <td className="p-3 text-sm text-[var(--color-text-primary)] text-right">₹{txn.closing_balance.toFixed(2)}</td>
+                    <td className="p-3 text-sm text-[var(--color-text-primary)] text-right">
+                      ₹{txn.closing_balance.toFixed(2)}
+                    </td>
                     <td className="p-3 text-[11px] text-[var(--color-text-secondary)] text-right">
-                      {new Date(txn.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                      {new Date(txn.date).toLocaleString("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
                     </td>
                   </tr>
                 ))}

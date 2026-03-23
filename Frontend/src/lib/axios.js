@@ -59,7 +59,7 @@ api.interceptors.response.use(
         const rs = await api.post(
           "/api/auth/token/refresh/",
           {},
-          { skipLoading: true }
+          { skipLoading: true },
         );
         const newAccess = rs.data.access;
         setAccessToken(newAccess);
@@ -75,7 +75,7 @@ api.interceptors.response.use(
 
     if (!originalRequest.skipLoading) store.dispatch(stopFetching());
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

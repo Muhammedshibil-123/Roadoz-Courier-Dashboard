@@ -38,7 +38,7 @@ export default function Login() {
             username: data.username,
             email: data.email,
           },
-        })
+        }),
       );
 
       navigate("/dashboard", { replace: true });
@@ -49,7 +49,9 @@ export default function Login() {
       } else if (data?.non_field_errors) {
         setError(data.non_field_errors[0]);
       } else {
-        setError("Invalid credentials. Please check your username and password.");
+        setError(
+          "Invalid credentials. Please check your username and password.",
+        );
       }
     } finally {
       setLoading(false);
@@ -104,7 +106,7 @@ export default function Login() {
                     to="/register"
                     className="text-[11px] sm:text-xs md:text-sm text-[#E3BE3A] hover:text-[#f1cf58] font-medium transition-colors"
                   >
-                   Register
+                    Register
                   </Link>
                 </div>
 

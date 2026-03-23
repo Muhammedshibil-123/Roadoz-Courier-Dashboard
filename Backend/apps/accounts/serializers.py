@@ -7,9 +7,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 User = get_user_model()
 
 
-
-
-
 class CustomTokenJwtSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
@@ -24,9 +21,6 @@ class CustomTokenJwtSerializer(TokenObtainPairSerializer):
         return data
 
 
-
-
-
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
     confirm_password = serializers.CharField(write_only=True)
@@ -36,12 +30,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ("username", "email", "password", "confirm_password", "secret_code")
 
-    
     def validate_username(self, value):
         if len(value) < 3:
-            raise serializers.ValidationError(
-                "Username must be at least 3 characters."
-            )
+            raise serializers.ValidationError("Username must be at least 3 characters.")
         if not re.match(r"^[a-zA-Z0-9_]+$", value):
             raise serializers.ValidationError(
                 "Username may only contain letters, digits, and underscores."
@@ -57,15 +48,14 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_secret_code(self, value):
         if value != "employee1234":
-            raise serializers.ValidationError(
-                "Invalid secret code. Access denied."
-            )
+            raise serializers.ValidationError("Invalid secret code. Access denied.")
         return value
 
-    
     def validate(self, data):
         if data["password"] != data["confirm_password"]:
-            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match."}
+            )
         return data
 
     def create(self, validated_data):
@@ -75,12 +65,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         user = User(**validated_data)
         user.set_password(password)
-        user.is_active = False   
+        user.is_active = False
         user.save()
         return user
-
-
-
 
 
 class VerifyOTPSerializer(serializers.Serializer):
@@ -88,14 +75,8 @@ class VerifyOTPSerializer(serializers.Serializer):
     otp = serializers.CharField(max_length=6)
 
 
-
-
-
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
-
-
-
 
 
 class ResetPasswordSerializer(serializers.Serializer):
@@ -112,9 +93,6 @@ class ResetPasswordSerializer(serializers.Serializer):
         return data
 
 
-
-
-
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, min_length=6)
@@ -128,9 +106,6 @@ class ChangePasswordSerializer(serializers.Serializer):
         return data
 
 
-
-
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -139,10 +114,17 @@ class UserSerializer(serializers.ModelSerializer):
 
 class GeneralDetailsSerializer(serializers.ModelSerializer):
     profile_image_url = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = User
-        fields = ("username", "email", "mobile", "order_report_email", "profile_image", "profile_image_url")
+        fields = (
+            "username",
+            "email",
+            "mobile",
+            "order_report_email",
+            "profile_image",
+            "profile_image_url",
+        )
         read_only_fields = ("username", "profile_image_url")
 
     def get_profile_image_url(self, obj):
@@ -154,19 +136,30 @@ class GeneralDetailsSerializer(serializers.ModelSerializer):
 class KYCSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("full_name", "business_name", "pan_number", "aadhar_number", "gst_number", "bank_account_number", "ifsc_code", "bank_name", "kyc_status")
+        fields = (
+            "full_name",
+            "business_name",
+            "pan_number",
+            "aadhar_number",
+            "gst_number",
+            "bank_account_number",
+            "ifsc_code",
+            "bank_name",
+            "kyc_status",
+        )
         read_only_fields = ("kyc_status",)
 
 
-from .models import PickupAddress, RTOAddress, LabelSetting, NonDeliveryPincode
+from .models import LabelSetting, NonDeliveryPincode, PickupAddress, RTOAddress
+
 
 class PickupAddressSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = PickupAddress
-        fields = '__all__'
-        read_only_fields = ('user', 'created_at')
+        fields = "__all__"
+        read_only_fields = ("user", "created_at")
 
 
 class RTOAddressSerializer(serializers.ModelSerializer):
@@ -174,50 +167,62 @@ class RTOAddressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RTOAddress
-        fields = '__all__'
-        read_only_fields = ('user', 'created_at')
+        fields = "__all__"
+        read_only_fields = ("user", "created_at")
 
 
 class LabelSettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = LabelSetting
-        fields = '__all__'
-        read_only_fields = ('user',)
+        fields = "__all__"
+        read_only_fields = ("user",)
 
 
 class NonDeliveryPincodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = NonDeliveryPincode
-        fields = '__all__'
-        read_only_fields = ('added_by', 'created_at')
+        fields = "__all__"
+        read_only_fields = ("added_by", "created_at")
 
 
 from .models import SupportTicket, TicketReply
+
 
 class TicketReplySerializer(serializers.ModelSerializer):
     sender = serializers.SerializerMethodField()
 
     class Meta:
         model = TicketReply
-        fields = ['id', 'message', 'is_admin', 'sender', 'created_at']
+        fields = ["id", "message", "is_admin", "sender", "created_at"]
 
     def get_sender(self, obj):
-        return 'Roadoz Support' if obj.is_admin else obj.user.username
+        return "Roadoz Support" if obj.is_admin else obj.user.username
 
 
 class SupportTicketSerializer(serializers.ModelSerializer):
     replies = TicketReplySerializer(many=True, read_only=True)
     reply_count = serializers.SerializerMethodField()
-    order_tracking_id = serializers.CharField(source='order.tracking_id', read_only=True, default=None)
+    order_tracking_id = serializers.CharField(
+        source="order.tracking_id", read_only=True, default=None
+    )
 
     class Meta:
         model = SupportTicket
         fields = [
-            'id', 'ticket_id', 'subject', 'message', 'category', 'priority',
-            'status', 'order_tracking_id', 'reply_count', 'replies',
-            'created_at', 'updated_at',
+            "id",
+            "ticket_id",
+            "subject",
+            "message",
+            "category",
+            "priority",
+            "status",
+            "order_tracking_id",
+            "reply_count",
+            "replies",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ('ticket_id', 'status', 'created_at', 'updated_at')
+        read_only_fields = ("ticket_id", "status", "created_at", "updated_at")
 
     def get_reply_count(self, obj):
         return obj.replies.count()

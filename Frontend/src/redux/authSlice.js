@@ -1,11 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  user: null,          // { id, username, email }
+  user: null, // { id, username, email }
   accessToken: null,
   isAuthenticated: false,
-  loading: true,       // true while the app does the initial /token/refresh/ check
-  loadingCount: 0,     // counts in-flight API calls (for global loading spinner)
+  loading: true, // true while the app does the initial /token/refresh/ check
+  loadingCount: 0, // counts in-flight API calls (for global loading spinner)
 };
 
 const authSlice = createSlice({

@@ -1,5 +1,11 @@
 import { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import api, { setAccessToken } from "./lib/axios";
 import { setCredentials, logout, finishInitialLoad } from "./redux/authSlice";
@@ -72,14 +78,14 @@ function App() {
         const response = await api.post(
           "/api/auth/token/refresh/",
           {},
-          { skipLoading: true }
+          { skipLoading: true },
         );
         setAccessToken(response.data.access);
         dispatch(
           setCredentials({
             accessToken: response.data.access,
             user: response.data.user,
-          })
+          }),
         );
       } catch {
         dispatch(logout());
@@ -129,9 +135,15 @@ function App() {
             <Route path="/orders/cancelled" element={<Cancelled />} />
 
             {/* Tools sub-pages */}
-            <Route path="/tools/serviceable-pincode" element={<ServiceablePincode />} />
+            <Route
+              path="/tools/serviceable-pincode"
+              element={<ServiceablePincode />}
+            />
             <Route path="/tools/rate-calculator" element={<RateCalculator />} />
-            <Route path="/tools/channel-integration" element={<ChannelIntegration />} />
+            <Route
+              path="/tools/channel-integration"
+              element={<ChannelIntegration />}
+            />
 
             {/* Finance sub-pages */}
             <Route path="/finance/wallet" element={<Wallet />} />
@@ -145,11 +157,23 @@ function App() {
             <Route path="/reports" element={<Reports />} />
 
             {/* Settings sub-pages */}
-            <Route path="/settings/general-details" element={<GeneralDetails />} />
-            <Route path="/settings/change-password" element={<ChangePassword />} />
-            <Route path="/settings/pickup-address" element={<PickupAddress />} />
+            <Route
+              path="/settings/general-details"
+              element={<GeneralDetails />}
+            />
+            <Route
+              path="/settings/change-password"
+              element={<ChangePassword />}
+            />
+            <Route
+              path="/settings/pickup-address"
+              element={<PickupAddress />}
+            />
             <Route path="/settings/rto-address" element={<RTOAddress />} />
-            <Route path="/settings/label-settings" element={<LabelSettings />} />
+            <Route
+              path="/settings/label-settings"
+              element={<LabelSettings />}
+            />
             <Route path="/settings/kyc" element={<KYC />} />
           </Route>
 

@@ -7,18 +7,36 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0001_initial'),
+        ("orders", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='status_changed_at',
+            model_name="order",
+            name="status_changed_at",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
         migrations.AlterField(
-            model_name='order',
-            name='status',
-            field=models.CharField(choices=[('PROCESSING', 'Processing'), ('MANIFESTED', 'Manifested'), ('PICKUP_PENDING', 'Pickup Pending'), ('NOT_PICKED', 'Not Picked'), ('IN_TRANSIT', 'In Transit'), ('OUT_FOR_DELIVERY', 'Out for Delivery'), ('DELIVERED', 'Delivered'), ('NDR', 'Non-Delivery Report'), ('RTO_IN_TRANSIT', 'RTO In Transit'), ('RTO_DELIVERED', 'RTO Delivered'), ('RETURN', 'Return'), ('CANCELLED', 'Cancelled')], db_index=True, default='PROCESSING', max_length=20),
+            model_name="order",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("PROCESSING", "Processing"),
+                    ("MANIFESTED", "Manifested"),
+                    ("PICKUP_PENDING", "Pickup Pending"),
+                    ("NOT_PICKED", "Not Picked"),
+                    ("IN_TRANSIT", "In Transit"),
+                    ("OUT_FOR_DELIVERY", "Out for Delivery"),
+                    ("DELIVERED", "Delivered"),
+                    ("NDR", "Non-Delivery Report"),
+                    ("RTO_IN_TRANSIT", "RTO In Transit"),
+                    ("RTO_DELIVERED", "RTO Delivered"),
+                    ("RETURN", "Return"),
+                    ("CANCELLED", "Cancelled"),
+                ],
+                db_index=True,
+                default="PROCESSING",
+                max_length=20,
+            ),
         ),
     ]

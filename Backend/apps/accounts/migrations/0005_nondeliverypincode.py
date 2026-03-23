@@ -8,21 +8,41 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0004_customuser_bank_account_number_customuser_bank_name_and_more'),
+        (
+            "accounts",
+            "0004_customuser_bank_account_number_customuser_bank_name_and_more",
+        ),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='NonDeliveryPincode',
+            name="NonDeliveryPincode",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('pincode', models.CharField(max_length=10, unique=True)),
-                ('reason', models.CharField(blank=True, max_length=200, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('added_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='blocked_pincodes', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("pincode", models.CharField(max_length=10, unique=True)),
+                ("reason", models.CharField(blank=True, max_length=200, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "added_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="blocked_pincodes",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['pincode'],
+                "ordering": ["pincode"],
             },
         ),
     ]

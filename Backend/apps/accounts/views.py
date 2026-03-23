@@ -35,17 +35,15 @@ def _send_otp_email(subject: str, body: str, recipient: str) -> None:
 def _set_refresh_cookie(response, refresh_token) -> None:
     jwt = settings.SIMPLE_JWT
 
-    
-    
     lifetime = jwt["REFRESH_TOKEN_LIFETIME"]
     max_age_seconds = int(lifetime.total_seconds())
 
     response.set_cookie(
         key=jwt["AUTH_COOKIE"],
         value=str(refresh_token),
-        max_age=max_age_seconds,              
+        max_age=max_age_seconds,
         path=jwt.get("AUTH_COOKIE_PATH", "/"),
-        domain=jwt.get("AUTH_COOKIE_DOMAIN"), 
+        domain=jwt.get("AUTH_COOKIE_DOMAIN"),
         secure=jwt["AUTH_COOKIE_SECURE"],
         httponly=jwt["AUTH_COOKIE_HTTP_ONLY"],
         samesite=jwt["AUTH_COOKIE_SAMESITE"],
@@ -92,7 +90,9 @@ class RegisterView(generics.GenericAPIView):
                     existing.email,
                 )
                 return Response(
-                    {"message": "Account already exists but is not verified. A new OTP has been sent to your email."},
+                    {
+                        "message": "Account already exists but is not verified. A new OTP has been sent to your email."
+                    },
                     status=status.HTTP_200_OK,
                 )
             return Response(
@@ -120,7 +120,9 @@ class RegisterView(generics.GenericAPIView):
         )
 
         return Response(
-            {"message": "Account created. Please check your email for the verification code."},
+            {
+                "message": "Account created. Please check your email for the verification code."
+            },
             status=status.HTTP_201_CREATED,
         )
 
@@ -137,7 +139,9 @@ class VerifyOTPView(APIView):
         tags=["Authentication"],
         request_body=VerifyOTPSerializer,
         responses={
-            200: openapi.Response("Account verified. Returns access token + user info."),
+            200: openapi.Response(
+                "Account verified. Returns access token + user info."
+            ),
             400: openapi.Response("Invalid OTP."),
             404: openapi.Response("User not found."),
         },
@@ -153,10 +157,14 @@ class VerifyOTPView(APIView):
         try:
             user = CustomUser.objects.get(email__iexact=email)
         except CustomUser.DoesNotExist:
-            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if user.otp != otp:
-            return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         user.is_active = True
         user.otp = None
@@ -226,22 +234,20 @@ class CustomTokenRefreshView(TokenRefreshView):
         },
     )
     def post(self, request, *args, **kwargs):
-        
-        
+
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
         if refresh_token:
-            
+
             request.data["refresh"] = refresh_token
 
         try:
             response = super().post(request, *args, **kwargs)
             if response.status_code == 200:
-                
+
                 new_refresh = response.data.pop("refresh", None)
                 if new_refresh:
                     _set_refresh_cookie(response, new_refresh)
 
-                
                 access_str = response.data.get("access")
                 if access_str:
                     user_id = AccessToken(access_str)["user_id"]
@@ -272,12 +278,13 @@ class LogoutView(APIView):
         responses={200: openapi.Response("Logged out successfully.")},
     )
     def post(self, request):
-        refresh_token = (
-            request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
-            or request.data.get("refresh")
-        )
+        refresh_token = request.COOKIES.get(
+            settings.SIMPLE_JWT["AUTH_COOKIE"]
+        ) or request.data.get("refresh")
 
-        response = Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
+        response = Response(
+            {"message": "Logged out successfully."}, status=status.HTTP_200_OK
+        )
         response.delete_cookie(
             settings.SIMPLE_JWT["AUTH_COOKIE"],
             path=settings.SIMPLE_JWT.get("AUTH_COOKIE_PATH", "/"),
@@ -327,7 +334,9 @@ class ForgotPasswordView(APIView):
             pass
 
         return Response(
-            {"message": "If an account with that email exists, a reset code has been sent."},
+            {
+                "message": "If an account with that email exists, a reset code has been sent."
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -357,7 +366,9 @@ class ResetPasswordView(APIView):
         try:
             user = CustomUser.objects.get(email__iexact=email)
         except CustomUser.DoesNotExist:
-            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if not user.otp or user.otp != otp:
             return Response(
@@ -411,22 +422,27 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save(update_fields=["password"])
 
-        return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Password changed successfully."}, status=status.HTTP_200_OK
+        )
 
 
 # --- Settings and Addresses Views ---
 from rest_framework import viewsets
-from rest_framework.parsers import MultiPartParser, FormParser
-from .models import PickupAddress, RTOAddress, LabelSetting, NonDeliveryPincode
+from rest_framework.decorators import api_view
+from rest_framework.decorators import permission_classes as perm_classes_dec
+from rest_framework.parsers import FormParser, MultiPartParser
+
+from .models import LabelSetting, NonDeliveryPincode, PickupAddress, RTOAddress
 from .serializers import (
     GeneralDetailsSerializer,
     KYCSerializer,
+    LabelSettingSerializer,
+    NonDeliveryPincodeSerializer,
     PickupAddressSerializer,
     RTOAddressSerializer,
-    LabelSettingSerializer,
-    NonDeliveryPincodeSerializer
 )
-from rest_framework.decorators import api_view, permission_classes as perm_classes_dec
+
 
 class GeneralDetailsView(generics.RetrieveUpdateAPIView):
     serializer_class = GeneralDetailsSerializer
@@ -458,7 +474,7 @@ class PickupAddressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return PickupAddress.objects.filter(user=self.request.user).order_by('-id')
+        return PickupAddress.objects.filter(user=self.request.user).order_by("-id")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -469,7 +485,7 @@ class RTOAddressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return RTOAddress.objects.filter(user=self.request.user).order_by('-id')
+        return RTOAddress.objects.filter(user=self.request.user).order_by("-id")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -497,61 +513,71 @@ class NonDeliveryPincodeViewSet(viewsets.ModelViewSet):
         serializer.save(added_by=self.request.user)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @perm_classes_dec([IsAuthenticated])
 def check_pincode(request):
     """Check if a pincode is serviceable (not in the blocked list)."""
-    pincode = request.query_params.get('pincode', '').strip()
+    pincode = request.query_params.get("pincode", "").strip()
     if not pincode:
-        return Response({'error': 'Pincode is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Pincode is required."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     is_blocked = NonDeliveryPincode.objects.filter(pincode=pincode).exists()
     if is_blocked:
         entry = NonDeliveryPincode.objects.get(pincode=pincode)
-        return Response({
-            'pincode': pincode,
-            'serviceable': False,
-            'reason': entry.reason or 'This pincode is currently not serviceable.',
-        })
+        return Response(
+            {
+                "pincode": pincode,
+                "serviceable": False,
+                "reason": entry.reason or "This pincode is currently not serviceable.",
+            }
+        )
     else:
-        return Response({
-            'pincode': pincode,
-            'serviceable': True,
-            'message': 'This pincode is serviceable. We can deliver here!',
-        })
+        return Response(
+            {
+                "pincode": pincode,
+                "serviceable": True,
+                "message": "This pincode is serviceable. We can deliver here!",
+            }
+        )
 
 
 # ── Support Ticket Views ────────────────────────────────────────────────────
 
 from rest_framework.decorators import api_view, permission_classes
+
 from .models import SupportTicket, TicketReply
 from .serializers import SupportTicketSerializer, TicketReplySerializer
 
 
-@api_view(['GET', 'POST'])
+@api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def ticket_list_create(request):
     """
     GET: List all tickets for the current user (with optional status filter)
     POST: Create a new support ticket
     """
-    if request.method == 'GET':
-        qs = SupportTicket.objects.filter(user=request.user).prefetch_related('replies')
-        status_filter = request.query_params.get('status')
-        if status_filter and status_filter in ('OPEN', 'ANSWERED', 'CLOSED'):
+    if request.method == "GET":
+        qs = SupportTicket.objects.filter(user=request.user).prefetch_related("replies")
+        status_filter = request.query_params.get("status")
+        if status_filter and status_filter in ("OPEN", "ANSWERED", "CLOSED"):
             qs = qs.filter(status=status_filter)
         serializer = SupportTicketSerializer(qs, many=True)
         return Response(serializer.data)
 
-    elif request.method == 'POST':
-        subject = request.data.get('subject')
-        message = request.data.get('message')
-        category = request.data.get('category', 'OTHER')
-        priority = request.data.get('priority', 'MEDIUM')
-        order_id = request.data.get('order_id')
+    elif request.method == "POST":
+        subject = request.data.get("subject")
+        message = request.data.get("message")
+        category = request.data.get("category", "OTHER")
+        priority = request.data.get("priority", "MEDIUM")
+        order_id = request.data.get("order_id")
 
         if not subject or not message:
-            return Response({'error': 'Subject and message are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Subject and message are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         ticket = SupportTicket(
             user=request.user,
@@ -562,6 +588,7 @@ def ticket_list_create(request):
         )
         if order_id:
             from orders.models import Order
+
             try:
                 order = Order.objects.get(id=order_id, user=request.user)
                 ticket.order = order
@@ -573,33 +600,39 @@ def ticket_list_create(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def ticket_detail(request, ticket_id):
     """GET: Get a single ticket with all replies."""
     try:
-        ticket = SupportTicket.objects.prefetch_related('replies').get(
+        ticket = SupportTicket.objects.prefetch_related("replies").get(
             ticket_id=ticket_id, user=request.user
         )
     except SupportTicket.DoesNotExist:
-        return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Ticket not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     serializer = SupportTicketSerializer(ticket)
     return Response(serializer.data)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def ticket_reply(request, ticket_id):
     """POST: Add a reply to a ticket (seller side)."""
     try:
         ticket = SupportTicket.objects.get(ticket_id=ticket_id, user=request.user)
     except SupportTicket.DoesNotExist:
-        return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Ticket not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
-    message = request.data.get('message')
+    message = request.data.get("message")
     if not message:
-        return Response({'error': 'Message is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Message is required."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     TicketReply.objects.create(
         ticket=ticket,
@@ -608,76 +641,90 @@ def ticket_reply(request, ticket_id):
         is_admin=False,
     )
     # Reopen ticket if it was closed/answered
-    if ticket.status != 'OPEN':
-        ticket.status = 'OPEN'
-        ticket.save(update_fields=['status'])
+    if ticket.status != "OPEN":
+        ticket.status = "OPEN"
+        ticket.save(update_fields=["status"])
 
     serializer = SupportTicketSerializer(ticket)
     return Response(serializer.data)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def ticket_close(request, ticket_id):
     """POST: Close a ticket."""
     try:
         ticket = SupportTicket.objects.get(ticket_id=ticket_id, user=request.user)
     except SupportTicket.DoesNotExist:
-        return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Ticket not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
-    ticket.status = 'CLOSED'
-    ticket.save(update_fields=['status'])
-    return Response({'detail': 'Ticket closed successfully.'})
+    ticket.status = "CLOSED"
+    ticket.save(update_fields=["status"])
+    return Response({"detail": "Ticket closed successfully."})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def ticket_summary(request):
     """GET: Summary stats for the tickets dashboard."""
     qs = SupportTicket.objects.filter(user=request.user)
-    return Response({
-        'total': qs.count(),
-        'open': qs.filter(status='OPEN').count(),
-        'answered': qs.filter(status='ANSWERED').count(),
-        'closed': qs.filter(status='CLOSED').count(),
-    })
+    return Response(
+        {
+            "total": qs.count(),
+            "open": qs.filter(status="OPEN").count(),
+            "answered": qs.filter(status="ANSWERED").count(),
+            "closed": qs.filter(status="CLOSED").count(),
+        }
+    )
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def all_open_tickets(request):
     """GET: Admin endpoint — get all open tickets across all users."""
-    qs = SupportTicket.objects.filter(status__in=['OPEN']).select_related('user', 'order').prefetch_related('replies')
+    qs = (
+        SupportTicket.objects.filter(status__in=["OPEN"])
+        .select_related("user", "order")
+        .prefetch_related("replies")
+    )
     data = []
     for t in qs:
-        data.append({
-            'id': t.id,
-            'ticket_id': t.ticket_id,
-            'subject': t.subject,
-            'message': t.message,
-            'category': t.category,
-            'priority': t.priority,
-            'status': t.status,
-            'username': t.user.username,
-            'order_tracking_id': t.order.tracking_id if t.order else None,
-            'reply_count': t.replies.count(),
-            'created_at': t.created_at,
-        })
+        data.append(
+            {
+                "id": t.id,
+                "ticket_id": t.ticket_id,
+                "subject": t.subject,
+                "message": t.message,
+                "category": t.category,
+                "priority": t.priority,
+                "status": t.status,
+                "username": t.user.username,
+                "order_tracking_id": t.order.tracking_id if t.order else None,
+                "reply_count": t.replies.count(),
+                "created_at": t.created_at,
+            }
+        )
     return Response(data)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def admin_ticket_reply(request, ticket_id):
     """POST: Admin replies to a user's ticket."""
     try:
         ticket = SupportTicket.objects.get(ticket_id=ticket_id)
     except SupportTicket.DoesNotExist:
-        return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Ticket not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
-    message = request.data.get('message')
+    message = request.data.get("message")
     if not message:
-        return Response({'error': 'Message is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Message is required."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     TicketReply.objects.create(
         ticket=ticket,
@@ -685,7 +732,7 @@ def admin_ticket_reply(request, ticket_id):
         message=message,
         is_admin=True,
     )
-    ticket.status = 'ANSWERED'
-    ticket.save(update_fields=['status'])
+    ticket.status = "ANSWERED"
+    ticket.save(update_fields=["status"])
 
-    return Response({'detail': 'Reply sent and ticket marked as answered.'})
+    return Response({"detail": "Reply sent and ticket marked as answered."})

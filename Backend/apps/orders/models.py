@@ -1,4 +1,5 @@
 import uuid
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -40,7 +41,9 @@ class Order(models.Model):
     customer_phone = models.CharField(max_length=15)
     destination_address = models.TextField()
     destination_pincode = models.CharField(max_length=10)
-    weight = models.DecimalField(max_digits=8, decimal_places=2, help_text="Weight in kg")
+    weight = models.DecimalField(
+        max_digits=8, decimal_places=2, help_text="Weight in kg"
+    )
     order_type = models.CharField(
         max_length=10,
         choices=OrderType.choices,
@@ -72,7 +75,9 @@ class Order(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.tracking_id} — {self.customer_name} ({self.get_status_display()})"
+        return (
+            f"{self.tracking_id} — {self.customer_name} ({self.get_status_display()})"
+        )
 
     def save(self, *args, **kwargs):
         if not self.tracking_id:

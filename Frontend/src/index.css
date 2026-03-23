@@ -5,30 +5,30 @@
 @layer base {
   /* LIGHT MODE COLORS (Default) */
   :root {
-    --color-bg-main: #F3F4F6;      /* Main app background (Light Gray) */
-    --color-bg-surface: #FFFFFF;   /* Cards, Modals, Navbar (White) */
-    --color-sidebar: #1E293B;      /* Dark Sidebar (Slate 800) */
-    
+    --color-bg-main: #f3f4f6; /* Main app background (Light Gray) */
+    --color-bg-surface: #ffffff; /* Cards, Modals, Navbar (White) */
+    --color-sidebar: #1e293b; /* Dark Sidebar (Slate 800) */
+
     --color-text-primary: #111827; /* Main headings/text (Almost Black) */
-    --color-text-secondary: #6B7280;/* Subtitles, labels (Gray) */
-    
-    --color-border: #E5E7EB;       /* Borders for tables, dividers */
-    --color-brand: #3B82F6;        /* Primary Blue for active states/buttons */
-    --color-brand-hover: #2563EB;
+    --color-text-secondary: #6b7280; /* Subtitles, labels (Gray) */
+
+    --color-border: #e5e7eb; /* Borders for tables, dividers */
+    --color-brand: #3b82f6; /* Primary Blue for active states/buttons */
+    --color-brand-hover: #2563eb;
   }
 
   /* DARK MODE COLORS */
   .dark {
-    --color-bg-main: #0F172A;      /* Main app background (Very Dark Slate) */
-    --color-bg-surface: #1E293B;   /* Cards, Modals, Navbar (Dark Slate) */
-    --color-sidebar: #0F172A;      /* Blend sidebar into background */
-    
-    --color-text-primary: #F8FAFC; /* Main headings/text (Off White) */
-    --color-text-secondary: #94A3B8;/* Subtitles, labels (Light Gray) */
-    
-    --color-border: #334155;       /* Dark borders */
-    --color-brand: #60A5FA;        /* Slightly lighter blue for dark mode contrast */
-    --color-brand-hover: #3B82F6;
+    --color-bg-main: #0f172a; /* Main app background (Very Dark Slate) */
+    --color-bg-surface: #1e293b; /* Cards, Modals, Navbar (Dark Slate) */
+    --color-sidebar: #0f172a; /* Blend sidebar into background */
+
+    --color-text-primary: #f8fafc; /* Main headings/text (Off White) */
+    --color-text-secondary: #94a3b8; /* Subtitles, labels (Light Gray) */
+
+    --color-border: #334155; /* Dark borders */
+    --color-brand: #60a5fa; /* Slightly lighter blue for dark mode contrast */
+    --color-brand-hover: #3b82f6;
   }
 
   /* Apply the background and text color to the whole body by default */

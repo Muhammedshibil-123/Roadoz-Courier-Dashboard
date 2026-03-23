@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
@@ -11,5 +12,7 @@ urlpatterns = [
     path("export/", views.export_orders_csv, name="export_orders_csv"),
     path("<int:pk>/", views.OrderDetailView.as_view(), name="order-detail"),
     path("<int:pk>/advance/", views.advance_order, name="order-advance"),
-    path("<int:order_id>/status/", views.update_order_status, name="order-update-status"),
+    path(
+        "<int:order_id>/status/", views.update_order_status, name="order-update-status"
+    ),
 ]

@@ -259,6 +259,123 @@ def order_stats(request):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
+def dashboard_overview(request):
+    """
+    GET /api/orders/dashboard/
+    Returns all data needed for the Dashboard page in a single call:
+      - order_stats: counts per status + TOTAL
+      - wallet: balance
+      - wallet_transactions: recent 5 transactions
+      - cod_summary: pending / transferred / cash_with_courier
+      - shipment_summary: weight breakdown, order-type breakdown, monthly trends
+    """
+    from finance.models import Wallet, WalletTransaction, CODRemittance
+    from django.db.models import Sum, F
+    from django.db.models.functions import TruncMonth
+
+    user = request.user
+    qs = Order.objects.filter(user=user)
+
+    # ── Order Stats ───────────────────────────────────────────
+    counts = qs.values('status').annotate(count=Count('status'))
+    order_stats = {choice_value: 0 for choice_value, _ in Order.Status.choices}
+    total = 0
+    for entry in counts:
+        order_stats[entry['status']] = entry['count']
+        total += entry['count']
+    order_stats["TOTAL"] = total
+
+    # RTO = RTO_IN_TRANSIT + RTO_DELIVERED
+    rto_total = order_stats.get("RTO_IN_TRANSIT", 0) + order_stats.get("RTO_DELIVERED", 0)
+    # Pending = PICKUP_PENDING + PROCESSING + MANIFESTED
+    pending_total = order_stats.get("PICKUP_PENDING", 0) + order_stats.get("PROCESSING", 0) + order_stats.get("MANIFESTED", 0)
+
+    # ── Wallet ────────────────────────────────────────────────
+    wallet, _ = Wallet.objects.get_or_create(user=user)
+    recent_txns = WalletTransaction.objects.filter(wallet=wallet)[:5]
+    txn_data = [
+        {
+            "amount": float(t.amount),
+            "type": t.transaction_type,
+            "description": t.description,
+            "date": t.created_at,
+            "closing_balance": float(t.closing_balance),
+        }
+        for t in recent_txns
+    ]
+
+    # Wallet transaction breakdown for chart
+    credit_total = float(
+        WalletTransaction.objects.filter(wallet=wallet, transaction_type="CREDIT")
+        .aggregate(total=Sum("amount"))["total"] or 0
+    )
+    debit_total = float(
+        WalletTransaction.objects.filter(wallet=wallet, transaction_type="DEBIT")
+        .aggregate(total=Sum("amount"))["total"] or 0
+    )
+
+    # ── COD Remittance ────────────────────────────────────────
+    cod_pending = float(
+        CODRemittance.objects.filter(user=user, status="PENDING")
+        .aggregate(total=Sum("cod_amount"))["total"] or 0
+    )
+    cod_transferred = float(
+        CODRemittance.objects.filter(user=user, status="TRANSFERRED")
+        .aggregate(total=Sum("cod_amount"))["total"] or 0
+    )
+    # Cash with courier
+    active_cod = qs.filter(order_type="COD").exclude(
+        status__in=["DELIVERED", "RETURN", "CANCELLED", "RTO_DELIVERED", "NDR"]
+    )
+    cash_with_courier = float(active_cod.aggregate(total=Sum("cod_amount"))["total"] or 0)
+
+    # ── Order type breakdown ──────────────────────────────────
+    cod_count = qs.filter(order_type="COD").count()
+    prepaid_count = qs.filter(order_type="PREPAID").count()
+
+    # ── Monthly order trend (last 6 months) ───────────────────
+    monthly = (
+        qs.annotate(month=TruncMonth("created_at"))
+        .values("month")
+        .annotate(count=Count("id"))
+        .order_by("-month")[:6]
+    )
+    monthly_trend = [
+        {"month": m["month"].strftime("%b %Y") if m["month"] else "", "count": m["count"]}
+        for m in monthly
+    ]
+
+    return Response({
+        "order_stats": order_stats,
+        "summary": {
+            "total": total,
+            "delivered": order_stats.get("DELIVERED", 0),
+            "rto": rto_total,
+            "pending": pending_total,
+            "in_transit": order_stats.get("IN_TRANSIT", 0),
+            "ndr": order_stats.get("NDR", 0),
+        },
+        "wallet": {
+            "balance": float(wallet.balance),
+            "total_credited": credit_total,
+            "total_debited": debit_total,
+            "recent_transactions": txn_data,
+        },
+        "cod": {
+            "pending": cod_pending,
+            "transferred": cod_transferred,
+            "cash_with_courier": cash_with_courier,
+        },
+        "order_type_breakdown": {
+            "cod": cod_count,
+            "prepaid": prepaid_count,
+        },
+        "monthly_trend": monthly_trend,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def consignees_list(request):
     """
     Returns a list of unique consignees (customers) based on the current user's orders.
@@ -301,6 +418,29 @@ def consignees_list(request):
             })
             
     return Response(results)
+
+# ── Bulk Delete (only PROCESSING orders) ──────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bulk_delete_orders(request):
+    """
+    POST /api/orders/bulk-delete/
+    Body: { "ids": [1, 2, 3] }
+    Only PROCESSING orders can be deleted (they haven't entered shipping pipeline).
+    """
+    ids = request.data.get('ids', [])
+    if not ids:
+        return Response({'detail': 'No order IDs provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    qs = Order.objects.filter(user=request.user, id__in=ids, status='PROCESSING')
+    deleted_count = qs.count()
+    qs.delete()
+
+    return Response({
+        'deleted': deleted_count,
+        'detail': f'{deleted_count} order(s) deleted successfully.'
+    })
 
 
 # ── Exporting ──────────────────────────────────────────────────────────────
